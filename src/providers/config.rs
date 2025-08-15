@@ -5,6 +5,7 @@ use std::collections::HashMap;
 
 /// Provider type enumeration
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "cli", derive(clap::ValueEnum))]
 #[serde(rename_all = "lowercase")]
 pub enum ProviderType {
     /// OpenAI-compatible API (OpenAI, Azure OpenAI, etc.)

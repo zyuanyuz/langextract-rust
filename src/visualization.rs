@@ -6,6 +6,7 @@ use std::collections::HashMap;
 use crate::Extraction;
 /// Export format options for visualization
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[cfg_attr(feature = "cli", derive(clap::ValueEnum))]
 pub enum ExportFormat {
     /// Simple text format (existing functionality)
     Text,
