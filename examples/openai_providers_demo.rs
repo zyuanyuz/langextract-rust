@@ -7,7 +7,7 @@
 
 use langextract_rust::{
     extract, ExampleData, Extraction, ExtractConfig,
-    ProviderConfig, ProviderType,
+    ProviderConfig, 
 };
 
 #[tokio::main]

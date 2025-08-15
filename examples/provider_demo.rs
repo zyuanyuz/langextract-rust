@@ -4,8 +4,8 @@
 //! with explicit configuration for different providers.
 
 use langextract_rust::{
-    extract, ExampleData, Extraction, ExtractConfig, FormatType,
-    ProviderConfig, ProviderType,
+    extract, ExampleData, Extraction, ExtractConfig,
+    ProviderConfig
 };
 
 #[tokio::main]

@@ -1,7 +1,0 @@
-extraction_class,extraction_text,description,start_char,end_char,alignment_status,group_index
-person,John Smith,Full name of the person,0,10,"MatchExact",0
-age,25,Age in years,16,18,"MatchExact",0
-company,TechCorp,Employer company,29,37,"MatchExact",0
-salary,"$75,000",Annual salary,48,55,"MatchExact",0
-email,john.smith@techcorp.com,Email address,79,102,"MatchExact",0
-location,"San Francisco, CA",City and state,119,136,"MatchExact",0
