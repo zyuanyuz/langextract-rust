@@ -3,7 +3,7 @@
 //! This example shows how to use the new agnostic provider system
 //! with explicit configuration for different providers.
 
-use langextract::{
+use langextract_rust::{
     extract, ExampleData, Extraction, ExtractConfig, FormatType,
     ProviderConfig, ProviderType,
 };

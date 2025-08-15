@@ -1,4 +1,4 @@
-use langextract::{
+use langextract_rust::{
     data::{Document, FormatType, ExampleData, Extraction},
     extract, ExtractConfig,
     providers::{ProviderConfig, ProviderType},
@@ -149,7 +149,7 @@ His colleague, Sarah Johnson, works in the marketing department and can be conta
 }
 
 async fn test_manual_alignment(source_text: &str) -> Result<(), Box<dyn std::error::Error>> {
-    use langextract::data::Extraction;
+    use langextract_rust::data::Extraction;
     
     // Create some sample extractions to test alignment
     let mut test_extractions = vec![

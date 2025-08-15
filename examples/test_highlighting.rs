@@ -1,4 +1,4 @@
-use langextract::{
+use langextract_rust::{
     data::{AnnotatedDocument, Extraction, CharInterval, AlignmentStatus},
     visualization::{export_document, ExportConfig, ExportFormat},
 };

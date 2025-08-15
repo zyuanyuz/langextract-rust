@@ -5,7 +5,7 @@
 //! - Azure OpenAI
 //! - Other OpenAI-compatible services (OpenRouter, Together AI, etc.)
 
-use langextract::{
+use langextract_rust::{
     extract, ExampleData, Extraction, ExtractConfig,
     ProviderConfig, ProviderType,
 };

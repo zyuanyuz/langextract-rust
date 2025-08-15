@@ -3,7 +3,7 @@
 //! This example demonstrates how the OpenAI provider handles large documents
 //! using automatic chunking and parallel processing.
 
-use langextract::{extract, ExampleData, Extraction, ExtractConfig, FormatType};
+use langextract_rust::{extract, ExampleData, Extraction, ExtractConfig, FormatType};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {

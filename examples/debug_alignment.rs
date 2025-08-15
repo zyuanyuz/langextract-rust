@@ -1,4 +1,4 @@
-use langextract::{
+use langextract_rust::{
     data::{ExampleData, FormatType, Extraction},
     providers::ProviderConfig,
     extract, ExtractConfig,

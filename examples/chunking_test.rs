@@ -3,7 +3,7 @@
 //! This example demonstrates how the langextract library handles large documents
 //! by automatically chunking them and processing them in parallel.
 
-use langextract::{extract, ExampleData, Extraction, ExtractConfig, FormatType};
+use langextract_rust::{extract, ExampleData, Extraction, ExtractConfig, FormatType};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -114,7 +114,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
 
             // Test visualization with chunked results
-            match langextract::visualize(&result, false) {
+            match langextract_rust::visualize(&result, false) {
                 Ok(viz) => {
                     println!("📄 Visualization (truncated):");
                     let lines: Vec<&str> = viz.lines().take(20).collect();

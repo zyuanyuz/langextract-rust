@@ -3,7 +3,7 @@
 //! This example demonstrates how to use the langextract library
 //! to extract structured information from text.
 
-use langextract::{extract, ExampleData, Extraction, ExtractConfig};
+use langextract_rust::{extract, ExampleData, Extraction, ExtractConfig};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {

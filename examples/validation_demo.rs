@@ -1,4 +1,4 @@
-use langextract::{
+use langextract_rust::{
     data::{ExampleData, Extraction, FormatType},
     extract, ExtractConfig,
     resolver::{ValidationConfig, ValidationResult},
@@ -125,7 +125,7 @@ You can contact him at m.chen@stanford.edu.
     println!("\n2️⃣ Validation Testing with Simulated Malformed Response:");
     println!("(This would normally be triggered by actual model output)");
     
-    use langextract::resolver::Resolver;
+    use langextract_rust::resolver::Resolver;
     
     // Create a resolver to test validation directly
     let test_config = ExtractConfig::default();

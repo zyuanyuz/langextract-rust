@@ -66,10 +66,10 @@
 
 | Class | Count |
 |-------|-------|
-| company | 1 |
-| person | 1 |
-| salary | 1 |
-| location | 1 |
 | email | 1 |
+| person | 1 |
 | age | 1 |
+| salary | 1 |
+| company | 1 |
+| location | 1 |
 

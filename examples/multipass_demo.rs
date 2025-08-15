@@ -1,4 +1,4 @@
-use langextract::{
+use langextract_rust::{
     data::{ExampleData, Extraction, FormatType},
     extract, ExtractConfig,
     visualization::visualize,

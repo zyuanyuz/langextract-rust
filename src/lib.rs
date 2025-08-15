@@ -17,7 +17,7 @@
 //! ## Quick Start
 //!
 //! ```rust,no_run
-//! use langextract::{extract, ExampleData, Extraction, FormatType};
+//! use langextract_rust::{extract, ExampleData, Extraction, FormatType};
 //!
 //! #[tokio::main]
 //! async fn main() -> Result<(), Box<dyn std::error::Error>> {

@@ -8,7 +8,7 @@
 //! 2. Run: ollama pull mistral
 //! 3. Start Ollama server (usually runs automatically)
 
-use langextract::{extract, ExampleData, Extraction, ExtractConfig, FormatType};
+use langextract_rust::{extract, ExampleData, Extraction, ExtractConfig, FormatType};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -106,7 +106,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
 
             // Test visualization
-            match langextract::visualize(&result, true) {
+            match langextract_rust::visualize(&result, true) {
                 Ok(viz) => {
                     println!("Visualization:");
                     println!("{}", viz);

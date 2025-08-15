@@ -7,7 +7,7 @@
 //! - Example management and formatting
 //! - Template customization
 
-use langextract::{
+use langextract_rust::{
     data::{ExampleData, Extraction, FormatType},
     prompting::{PromptContext, PromptTemplate, TemplateRenderer},
     providers::ProviderType,
