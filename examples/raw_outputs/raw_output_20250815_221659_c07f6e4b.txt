@@ -1,0 +1,24 @@
+=== Raw Model Output ===
+Timestamp: 2025-08-15T22:16:59.546015630+00:00
+Metadata: validation_parse
+Format: Json
+=== Output Content ===
+{
+  "color": "Graphite",
+  "model_number": "AE113AWBPB23103",
+  "product_code": "HM-AERON-B-GRA",
+  "serial_number_range": "AER2024000001-AER2024099999",
+  "warranty": {
+    "duration": "12 years",
+    "code": "WAR-HM-12Y-001"
+  },
+  "authorized_dealer_code": "DEAL-HM-001",
+  "region_code": "REG-NA-001",
+  "price": "$1,395.00",
+  "business_discount_available": "BIZ-DISC-001",
+  "lead_time": "2-4 weeks",
+  "production_code": "PROD-HM-001",
+  "shipping_class": "SHIP-CLASS-OVERSIZED-001",
+  "size": "Size B"
+}
+=== End Output ===

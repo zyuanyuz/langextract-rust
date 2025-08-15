@@ -1,0 +1,27 @@
+=== Raw Model Output ===
+Timestamp: 2025-08-15T22:17:08.370043716+00:00
+Metadata: validation_parse
+Format: Json
+=== Output Content ===
+{
+  "category": "Men's Running Shoes",
+  "color": "Black/White",
+  "colorway_code": "CW-BLK-WHT-001",
+  "model": "Air Max 270",
+  "product_name": "Nike Air Max 270",
+  "style_code": "AH8050-001",
+  "upc": "192499123456",
+  "sku": "NIKE-AM270-BLK-001",
+  "size_range": "7-15",
+  "size_chart": "SIZE-MENS-SHOES-001",
+  "technology": "Air Max 270 unit",
+  "tech_code": "TECH-AIRMAX270-001",
+  "price": "$150.00",
+  "employee_discount": "$105.00",
+  "employee_id": "EMP-NIKE-001",
+  "release_date": "03/26/2018",
+  "release_code": "REL-2018-Q1-001",
+  "factory_code": "FAC-NIKE-VN-001",
+  "quality_code": "QC-NIKE-001"
+}
+=== End Output ===

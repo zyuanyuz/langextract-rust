@@ -1,0 +1,23 @@
+=== Raw Model Output ===
+Timestamp: 2025-08-15T22:17:03.939939217+00:00
+Metadata: validation_parse
+Format: Json
+=== Output Content ===
+{
+  "age_group": "18+",
+  "billing_code": "91300",
+  "cdc_vfc_code": "VFC-COVID-001",
+  "eligibility_code": "ELIG-ADULT-001",
+  "insurance_code": "INS-VAC-001",
+  "lot_number": "CV19VAC001",
+  "manufacturer_code": "VAC-COVID-MODERNA-001",
+  "product_name": "Moderna COVID-19 Vaccine (Spikevax)",
+  "serial_number": "SN-MOD-CV19-001",
+  "storage": "-20°C freezer",
+  "vaccine_code": "VAC-COVID-MODERNA-001",
+  "vis_date": "VIS-COVID-20240115",
+  "administration_code": "ADM-IM-001",
+  "cold_chain_code": "COLD-CHAIN-001",
+  "vaers_reporting_code": "VAERS-COVID-001"
+}
+=== End Output ===

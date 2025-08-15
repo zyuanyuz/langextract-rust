@@ -1,0 +1,28 @@
+=== Raw Model Output ===
+Timestamp: 2025-08-15T22:17:05.071067402+00:00
+Metadata: validation_parse
+Format: Json
+=== Output Content ===
+{
+  "brand": "Levi's",
+  "model": "501 Original Fit Jeans",
+  "style_number": "00501-0000",
+  "color_code": "INDIGO-RINSE-001",
+  "upc": "037456789012",
+  "sku": "LEVIS-501-ORIG-IND-001",
+  "material_code": "MAT-DENIM-100COT-001",
+  "fabric_weight": "14.75 oz",
+  "size_range_waist": "28-42",
+  "size_range_length": "30-36",
+  "size_chart": "SIZE-MENS-JEANS-001",
+  "price": "$69.50",
+  "sale_price": "$49.99",
+  "promotion_code": "PROMO-DENIM-001",
+  "supplier": "LEVI-STRAUSS-001",
+  "import_code": "IMP-DENIM-001",
+  "care_instructions": "CARE-DENIM-COLD-001",
+  "wash_code": "WASH-COLD-001",
+  "country_of_origin": "Bangladesh",
+  "origin_code": "ORIG-BD-001"
+}
+=== End Output ===

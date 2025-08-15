@@ -1,0 +1,23 @@
+=== Raw Model Output ===
+Timestamp: 2025-08-15T22:17:19.292905514+00:00
+Metadata: validation_parse
+Format: Json
+=== Output Content ===
+{
+  "accessory_code": "ACC-BGE-001",
+  "assembly_code": "ASM-MINIMAL-001",
+  "cooking_surface": "314 sq inches",
+  "model": "LHDFCE",
+  "product_code": "BGE-LARGE-COMP-001",
+  "price": "$1,099.00",
+  "package_deal": "$1,399.00",
+  "package_id": "PKG-BGE-ACC-001",
+  "surface_code": "SURF-314SQ-001",
+  "temperature_range": "200°F - 750°F+",
+  "temp_code": "TEMP-200-750-001",
+  "upc": "665719123456",
+  "sku": "GRILL-BGE-LARGE-001",
+  "warranty_code": "WAR-BGE-LIFE-001",
+  "product_name": "Big Green Egg Large Ceramic Kamado Grill"
+}
+=== End Output ===

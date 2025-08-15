@@ -1,0 +1,23 @@
+=== Raw Model Output ===
+Timestamp: 2025-08-15T22:16:55.833758237+00:00
+Metadata: validation_parse
+Format: Json
+=== Output Content ===
+{
+  "brand": "Bosch",
+  "model": "Premium Spark Plugs - Platinum+4",
+  "part_number": "4417",
+  "oem_code": "OEM-BOSCH-001",
+  "fitment_code": "FIT-MULTI-001",
+  "compatible_with_vehicles": "VEH-LIST-001",
+  "universal_fit": "4-cylinder engines",
+  "price_each": "$12.99",
+  "set_of_4_price": "$49.99",
+  "bundle_code": "BUN-SPARK-001",
+  "supplier_part": "SUP-BOSCH-4417",
+  "cross_reference": "XREF-NGK-001",
+  "warehouse_location": "WH-AUTO-A-SHELF-15",
+  "bin_code": "BIN-A15-001",
+  "technical_specification": "SPEC-SPARK-PLAT-001"
+}
+=== End Output ===

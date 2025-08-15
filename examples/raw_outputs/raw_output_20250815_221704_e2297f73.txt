@@ -1,0 +1,25 @@
+=== Raw Model Output ===
+Timestamp: 2025-08-15T22:17:04.113607426+00:00
+Metadata: validation_parse
+Format: Json
+=== Output Content ===
+{
+  "generic_name": "Atorvastatin",
+  "brand_code": "BRAND-PFIZER-001",
+  "model": "ATORVA-20MG-001",
+  "product_name": "Pfizer Lipitor (Atorvastatin)",
+  "manufacturer": "Pfizer Inc.",
+  "mfG_license": "LIC-PFIZER-001",
+  "strength": "20mg",
+  "dosage_form": "Tablet",
+  "route": "Oral",
+  "package_size": "90 tablets",
+  "bottle_code": "BTL-90CT-PFZ",
+  "ndc": "0071-0155-23",
+  "lot_number": "LIP24A001",
+  "expiration_date": "06/2026",
+  "storage_requirements": "Store at 20-25°C, Storage Code: STOR-ROOM-TEMP-001",
+  "insurance_formulary_tier": "Tier 2",
+  "formulary_code": "FORM-TIER2-001"
+}
+=== End Output ===

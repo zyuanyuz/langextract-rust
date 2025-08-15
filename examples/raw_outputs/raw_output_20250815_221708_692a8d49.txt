@@ -1,0 +1,28 @@
+=== Raw Model Output ===
+Timestamp: 2025-08-15T22:17:08.934184626+00:00
+Metadata: validation_parse
+Format: Json
+=== Output Content ===
+{
+  "brand": "L'Oréal Paris",
+  "product_name": "Revitalift Anti-Aging Night Cream",
+  "model": "N/A",
+  "upc": "071249123456",
+  "product_code": "LOREAL-REVIT-NIGHT-001",
+  "sku": "BEAUTY-LOREAL-001",
+  "batch_code": "BCH-REV-2024-001",
+  "formula": "Pro-Retinol + Centella Asiatica",
+  "formula_code": "FORM-RETINOL-001",
+  "size": "1.7 oz / 48g",
+  "package_code": "PKG-NIGHT-CREAM-001",
+  "price": "$24.99",
+  "loyalty_price": "$19.99",
+  "loyalty_program_code": "BI-MEMBER-001",
+  "dermatologist_tested_code": "DERM-TEST-001",
+  "safety_code": "SAFE-COSMETIC-001",
+  "cruelty_free_certification_code": "CF-CERTIFIED-001",
+  "ingredient_list": "ING-LIST-REV-001",
+  "expiry": "36 months from manufacture",
+  "manufacture_date_code": "MFG-2024-Q2-001"
+}
+=== End Output ===

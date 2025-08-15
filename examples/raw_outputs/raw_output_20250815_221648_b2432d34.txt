@@ -1,0 +1,22 @@
+=== Raw Model Output ===
+Timestamp: 2025-08-15T22:16:48.913339198+00:00
+Metadata: validation_parse
+Format: Json
+=== Output Content ===
+{
+  "brand": "3M",
+  "model": "8210",
+  "product_code": "3M-8210-N95",
+  "niosh_approval": "TC-84A-001",
+  "lot_numbers": ["2024A1234", "2024B5678", "2024C9012"],
+  "fda_eua": "EUA-001234",
+  "package_size": "Box of 20 masks",
+  "case_code": "CASE-PPE-001",
+  "price_per_box": "$24.99",
+  "bulk_code": "BULK-PPE-001",
+  "medical_supply_license": "MSL-001234",
+  "distributor_code": "DIST-PPE-001",
+  "current_inventory": "500 cases",
+  "warehouse_code": "WH-PPE-001"
+}
+=== End Output ===

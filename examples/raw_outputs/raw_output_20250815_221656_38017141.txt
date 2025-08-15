@@ -1,0 +1,23 @@
+=== Raw Model Output ===
+Timestamp: 2025-08-15T22:16:56.140483391+00:00
+Metadata: validation_parse
+Format: Json
+=== Output Content ===
+{
+  "active_ingredient": "Acetaminophen 500mg",
+  "bottle_code": "BTL-24CT-001",
+  "control_number": "CTL-TYL-001",
+  "exp_date": "12/2026",
+  "fda_registration": "REG-FDA-JNJ-001",
+  "generic_available": "GEN-ACET-500-001",
+  "lot_number": "TYL24A001",
+  "manufacturing_code": "MFG-JNJ-001",
+  "model": "Johnson & Johnson Tylenol Extra Strength",
+  "ndc_number": "50580-488-02",
+  "package_size": "24 caplets",
+  "pharmacy_code": "PHAR-OTC-001",
+  "price": "$8.99",
+  "product_name": "Johnson & Johnson Tylenol Extra Strength - 500mg Caplets",
+  "upc": "300450813022"
+}
+=== End Output ===

@@ -1,0 +1,23 @@
+=== Raw Model Output ===
+Timestamp: 2025-08-15T22:16:48.701509976+00:00
+Metadata: validation_parse
+Format: Json
+=== Output Content ===
+{
+  "advanced_sleep_therapy": "integrated humidifier",
+  "device_model": "DS2-CPAP-001",
+  "expiry_tracking": "EXP-2029-001",
+  "fda_code": "FDA-510K-001234",
+  "insurance_billable_code": "HCPCS-E0601",
+  "insurance_code": "INS-DME-001",
+  "license": "LIC-DME-STATE-001",
+  "medical_device_classification": "Class II",
+  "model": "Philips Respironics DreamStation 2 CPAP Machine",
+  "prescription_required": "RX-REQ-001",
+  "product_code": "MDS",
+  "product_lot": "LOT-DS2-2024-Q1",
+  "price": "$849.00",
+  "serial_number_range": "DS2240000001-DS2240099999",
+  "supplier": "MED-SUPPLY-001"
+}
+=== End Output ===
