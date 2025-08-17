@@ -3,7 +3,7 @@
 //! This example demonstrates how the langextract library handles large documents
 //! by automatically chunking them and processing them in parallel.
 
-use langextract_rust::{extract, ExampleData, Extraction, ExtractConfig, FormatType};
+use langextract_rust::{extract, ExampleData, Extraction, ExtractConfig, FormatType, ProviderConfig};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -43,9 +43,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("   Paragraph Count: {}", large_text.split("\n\n").count());
     println!();
 
+    // Create provider configuration for Ollama
+    let provider_config = ProviderConfig::ollama("mistral", Some("http://localhost:11434".to_string()));
+    
     // Create extraction configuration for chunking
-    let config = ExtractConfig {
-        model_id: "mistral".to_string(),  // This will auto-detect as Ollama provider
+    let mut config = ExtractConfig {
+        model_id: "mistral".to_string(),
         api_key: None,  // Not needed for Ollama
         model_url: Some("http://localhost:11434".to_string()),  // Default Ollama port
         format_type: FormatType::Json,
@@ -62,6 +65,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         
         ..Default::default()
     };
+
+    // Set explicit provider configuration
+    config.language_model_params.insert(
+        "provider_config".to_string(),
+        serde_json::to_value(&provider_config)?,
+    );
 
     println!("⚙️  Chunking Configuration:");
     println!("   Max chars per chunk: {}", config.max_char_buffer);

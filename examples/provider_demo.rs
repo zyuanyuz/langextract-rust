@@ -117,34 +117,35 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
     println!();
 
-    // Demo 4: Show provider auto-detection
-    println!("📋 4. Provider Auto-Detection Examples");
+    // Demo 4: Show that explicit provider configuration is required
+    println!("📋 4. Explicit Provider Configuration Required");
     
-    let test_models = vec![
-        ("gpt-4", "OpenAI"),
-        ("gpt-3.5-turbo", "OpenAI"), 
-        ("mistral", "Ollama"),
-        ("llama2", "Ollama"),
-        ("codellama", "Ollama"),
-        ("custom-model-123", "Custom"),
-    ];
-
-    for (model, expected_provider) in test_models {
-        let config = ExtractConfig {
-            model_id: model.to_string(),
-            ..Default::default()
-        };
-        
-        println!("   Model '{}' → {} provider", model, expected_provider);
+    let config = ExtractConfig {
+        model_id: "mistral".to_string(),
+        ..Default::default()
+    };
+    
+    println!("   Trying to extract without explicit provider configuration...");
+    match extract(test_text, Some("Extract names and ages"), &examples, config).await {
+        Ok(_) => {
+            println!("   ❌ This should not have succeeded!");
+        }
+        Err(e) => {
+            println!("   ✅ Expected failure: Provider configuration is required");
+            if e.to_string().contains("Provider configuration is required") {
+                println!("   ✅ Correct error message displayed");
+            }
+        }
     }
 
     println!("\n🎉 Provider demo complete!");
-    println!("\n💡 Key Benefits of the New Provider System:");
-    println!("   • Explicit provider configuration");
+    println!("\n💡 Key Benefits of Explicit Provider Configuration:");
+    println!("   • No magic model-name-based auto-detection");
+    println!("   • Explicit provider configuration required");
     println!("   • Support for custom base URLs");
     println!("   • Flexible header and parameter passing");
-    println!("   • No magic model-name-based selection");
     println!("   • Easy to extend with new providers");
+    println!("   • More predictable and debuggable behavior");
 
     Ok(())
 }

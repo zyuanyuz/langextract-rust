@@ -59,17 +59,17 @@ cargo install --path . --features cli
 #### CLI Quick Start
 
 ```bash
-# Initialize configuration
-lx-rs init
+# Initialize configuration (provider required)
+lx-rs init --provider ollama
 
-# Extract from text
-lx-rs extract "John Doe is 30 years old" --prompt "Extract names and ages"
+# Extract from text (provider required)
+lx-rs extract "John Doe is 30 years old" --prompt "Extract names and ages" --provider ollama
 
 # Test your setup
 lx-rs test --provider ollama
 
 # Process files
-lx-rs extract document.txt --examples examples.json --export html
+lx-rs extract document.txt --examples examples.json --export html --provider ollama
 
 # Check available providers
 lx-rs providers
@@ -185,15 +185,16 @@ Extract structured information from text, files, or URLs:
 
 ```bash
 # Basic extraction
-lx-rs extract "Alice Smith is 25 years old" --prompt "Extract names and ages"
+lx-rs extract "Alice Smith is 25 years old" --prompt "Extract names and ages" --provider ollama
 
 # From file with custom examples
 lx-rs extract document.txt \
   --examples my_examples.json \
   --output results.json \
-  --export html
+  --export html \
+  --provider ollama
 
-# With specific provider
+# With specific provider and model
 lx-rs extract text.txt \
   --provider ollama \
   --model mistral \
@@ -203,7 +204,8 @@ lx-rs extract text.txt \
 # From URL
 lx-rs extract "https://example.com/article.html" \
   --prompt "Extract key facts" \
-  --format yaml
+  --format yaml \
+  --provider openai
 
 # Advanced options
 lx-rs extract large_document.txt \
@@ -224,17 +226,17 @@ lx-rs extract large_document.txt \
 #### Configuration Commands
 
 ```bash
-# Initialize configuration files
-lx-rs init
+# Initialize configuration files (provider required)
+lx-rs init --provider ollama
 
-# Initialize for specific provider
+# Initialize for OpenAI provider
 lx-rs init --provider openai
 
 # Force overwrite existing configs
-lx-rs init --force
+lx-rs init --provider ollama --force
 
-# Test provider connectivity
-lx-rs test
+# Test provider connectivity (provider required)
+lx-rs test --provider ollama
 lx-rs test --provider ollama --model mistral
 lx-rs test --provider openai --api-key your_key
 ```

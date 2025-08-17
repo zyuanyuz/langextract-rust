@@ -8,22 +8,22 @@ class LxRs < Formula
   
   if OS.mac?
     if Hardware::CPU.arm?
-      url "https://github.com/modularflow/langextract-rust/releases/download/v#{version}/lx-rs-aarch64-apple-darwin.tar.gz"
+      url "https://github.com/modularflow/langextract-rust/releases/download/v#{version}/langextract-rust-aarch64-apple-darwin.tar.gz"
       sha256 "REPLACE_WITH_ACTUAL_SHA256_OF_ARM64_MACOS_BINARY"
     else
-      url "https://github.com/modularflow/langextract-rust/releases/download/v#{version}/lx-rs-x86_64-apple-darwin.tar.gz"
+      url "https://github.com/modularflow/langextract-rust/releases/download/v#{version}/langextract-rust-x86_64-apple-darwin.tar.gz"
       sha256 "REPLACE_WITH_ACTUAL_SHA256_OF_X86_64_MACOS_BINARY"
     end
   elsif OS.linux?
-    url "https://github.com/modularflow/langextract-rust/releases/download/v#{version}/lx-rs-x86_64-unknown-linux-gnu.tar.gz"
+    url "https://github.com/modularflow/langextract-rust/releases/download/v#{version}/langextract-rust-x86_64-unknown-linux-gnu.tar.gz"
     sha256 "REPLACE_WITH_ACTUAL_SHA256_OF_LINUX_BINARY"
   end
 
   def install
-    bin.install "lx-rs"
+    bin.install "langextract-rust"
   end
 
   test do
-    system "#{bin}/lx-rs", "--version"
+    system "#{bin}/langextract-rust", "--version"
   end
 end

@@ -1,0 +1,9 @@
+=== Raw Model Output ===
+Timestamp: 2025-08-17T22:09:01.958242367+00:00
+Metadata: validation_parse
+Format: Json
+=== Output Content ===
+ {
+  "test": "test message"
+}
+=== End Output ===

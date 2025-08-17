@@ -41,12 +41,17 @@ use langextract::{ProviderConfig, ExtractConfig};
 let provider_config = ProviderConfig::ollama("mistral", None)
     .with_base_url("http://localhost:11434".to_string());
 
-// Via ExtractConfig (auto-detected)
-let extract_config = ExtractConfig {
-    model_id: "mistral".to_string(),  // Auto-detects Ollama
+// Via ExtractConfig (explicit provider config required)
+let provider_config = ProviderConfig::ollama("mistral", Some("http://localhost:11434".to_string()));
+let mut extract_config = ExtractConfig {
+    model_id: "mistral".to_string(),
     model_url: Some("http://localhost:11434".to_string()),
     ..Default::default()
 };
+extract_config.language_model_params.insert(
+    "provider_config".to_string(),
+    serde_json::to_value(&provider_config).unwrap()
+);
 ```
 
 ### 2. OpenAI-Compatible APIs
@@ -70,15 +75,15 @@ let custom_config = ProviderConfig::custom("https://my-api.com/v1", "my-model")
     .with_extra_param("custom_param".to_string(), serde_json::json!("value"));
 ```
 
-## Auto-Detection Rules
+## Explicit Configuration Required
 
-The system automatically detects provider types based on model names:
+**Auto-detection has been removed!** Provider configuration is now required to be explicit. You must specify the provider type either:
 
-| Model Pattern | Provider Type | Examples |
-|---------------|---------------|----------|
-| Contains "gpt" or "openai" | OpenAI | `gpt-4`, `gpt-3.5-turbo`, `openai-model` |
-| Contains "mistral", "llama", "codellama", or "ollama" | Ollama | `mistral`, `llama2`, `codellama:13b` |
-| All others | Custom | `claude-3`, `my-custom-model` |
+1. Via CLI: `--provider <openai|ollama|custom>`
+2. Via ProviderConfig in code
+3. Via language_model_params in ExtractConfig
+
+This ensures predictable behavior and eliminates hidden "magic" based on model names.
 
 ## Implementation Status
 
@@ -87,7 +92,7 @@ The system automatically detects provider types based on model names:
 - Universal provider structure
 - Ollama HTTP API integration
 - OpenAI provider framework (with async-openai)
-- Auto-detection based on model names
+- Explicit provider configuration requirement (auto-detection removed)
 - Factory functions for easy creation
 - Comprehensive test coverage
 
@@ -99,21 +104,27 @@ The system automatically detects provider types based on model names:
 
 ## Advantages Over Python Version
 
-1. **No Magic**: Explicit provider configuration, no hidden model-name-based selection
-2. **Flexibility**: Support for any base URL, headers, and custom parameters
-3. **Type Safety**: Compile-time guarantees for provider configurations
-4. **Extensibility**: Easy to add new provider types without changing core logic
-5. **Testing**: Providers can be easily mocked and tested
-6. **Performance**: Single provider implementation reduces overhead
+1. **No Magic**: Explicit provider configuration required, no hidden model-name-based auto-detection
+2. **Predictability**: Always know exactly which provider will be used
+3. **Flexibility**: Support for any base URL, headers, and custom parameters
+4. **Type Safety**: Compile-time guarantees for provider configurations
+5. **Extensibility**: Easy to add new provider types without changing core logic
+6. **Testing**: Providers can be easily mocked and tested
+7. **Performance**: Single provider implementation reduces overhead
 
 ## Usage Patterns
 
-### Simple Usage (Auto-Detection)
+### Simple Usage (Explicit Configuration)
 ```rust
-let config = ExtractConfig {
-    model_id: "mistral".to_string(),  // Auto-detects Ollama
+let provider_config = ProviderConfig::ollama("mistral", None);
+let mut config = ExtractConfig {
+    model_id: "mistral".to_string(),
     ..Default::default()
 };
+config.language_model_params.insert(
+    "provider_config".to_string(),
+    serde_json::to_value(&provider_config).unwrap()
+);
 ```
 
 ### Explicit Configuration
@@ -124,12 +135,18 @@ let provider = create_provider(provider_config)?;
 
 ### Custom Endpoint
 ```rust
-let config = ExtractConfig {
+let provider_config = ProviderConfig::custom("https://my-custom-api.com", "my-model")
+    .with_api_key("my-key".to_string());
+let mut config = ExtractConfig {
     model_id: "my-model".to_string(),
     model_url: Some("https://my-custom-api.com".to_string()),
     api_key: Some("my-key".to_string()),
     ..Default::default()
 };
+config.language_model_params.insert(
+    "provider_config".to_string(),
+    serde_json::to_value(&provider_config).unwrap()
+);
 ```
 
 ## Testing
@@ -157,12 +174,12 @@ cargo run --example ollama_test
 
 ## Migration from Python
 
-The Rust provider system is designed to be more explicit than the Python version:
+The Rust provider system requires explicit configuration instead of auto-detection:
 
-| Python (Auto-Selection) | Rust (Explicit) |
-|-------------------------|------------------|
-| `model_id="gpt-4"` → Magic OpenAI | `ProviderConfig::openai("gpt-4", api_key)` |
-| Environment-based provider selection | Explicit provider type configuration |
-| Hidden provider instantiation | Transparent provider creation |
+| Python (Auto-Selection) | Rust (Explicit Required) |
+|-------------------------|---------------------------|
+| `model_id="gpt-4"` → Auto-detected OpenAI | `--provider openai --model gpt-4` (CLI) or `ProviderConfig::openai("gpt-4", api_key)` (code) |
+| Model name pattern detection | Explicit provider type specification |
+| Hidden provider instantiation | Transparent provider creation with configuration |
 
-This design makes the system more predictable, testable, and maintainable.
+This design eliminates magic behavior and makes the system more predictable, testable, and maintainable.

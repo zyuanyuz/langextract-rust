@@ -8,7 +8,7 @@
 //! 2. Run: ollama pull mistral
 //! 3. Start Ollama server (usually runs automatically)
 
-use langextract_rust::{extract, ExampleData, Extraction, ExtractConfig, FormatType};
+use langextract_rust::{extract, ExampleData, Extraction, ExtractConfig, FormatType, ProviderConfig};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -39,9 +39,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         ),
     ];
 
+    // Create provider configuration for Ollama
+    let provider_config = ProviderConfig::ollama("mistral", Some("http://localhost:11434".to_string()));
+    
     // Create extraction configuration for Ollama/Mistral
-    let config = ExtractConfig {
-        model_id: "mistral".to_string(),  // This will auto-detect as Ollama provider
+    let mut config = ExtractConfig {
+        model_id: "mistral".to_string(),
         api_key: None,  // Not needed for Ollama
         model_url: Some("http://localhost:11434".to_string()),  // Default Ollama port
         format_type: FormatType::Json,
@@ -55,6 +58,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         max_workers: 2,
         ..Default::default()
     };
+
+    // Set explicit provider configuration
+    config.language_model_params.insert(
+        "provider_config".to_string(),
+        serde_json::to_value(&provider_config)?,
+    );
 
     // Test text to extract information from
     let test_text = "Alice Johnson is a 28-year-old data scientist working at Google in Mountain View. \

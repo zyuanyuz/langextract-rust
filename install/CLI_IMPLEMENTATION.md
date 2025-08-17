@@ -90,21 +90,21 @@ Successfully implemented a comprehensive command-line interface for the LangExtr
 ### Quick Install (Recommended)
 ```bash
 # Linux/macOS
-curl -fsSL https://raw.githubusercontent.com/modularflow/lx-rs/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/modularflow/langextract-rust/main/install.sh | bash
 
 # Windows PowerShell
-iwr -useb https://raw.githubusercontent.com/modularflow/lx-rs/main/install.ps1 | iex
+iwr -useb https://raw.githubusercontent.com/modularflow/langextract-rust/main/install.ps1 | iex
 ```
 
 ### Manual Install
 ```bash
-cargo install lx-rs --features cli
+cargo install langextract-rust --features cli
 ```
 
 ### From Source
 ```bash
-git clone https://github.com/modularflow/lx-rs
-cd lx-rs
+git clone https://github.com/modularflow/langextract-rust
+cd langextract-rust
 cargo install --path . --features cli
 ```
 

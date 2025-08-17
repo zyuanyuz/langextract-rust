@@ -82,9 +82,9 @@ mod cli {
         #[arg(short, long, default_value = "gemini-2.5-flash")]
         pub model: String,
 
-        /// Provider type
+        /// Provider type (required)
         #[arg(long, value_enum)]
-        pub provider: Option<ProviderType>,
+        pub provider: ProviderType,
 
         /// API key (overrides environment variables)
         #[arg(long)]
@@ -145,9 +145,9 @@ mod cli {
         #[arg(default_value = ".")]
         pub directory: PathBuf,
 
-        /// Provider to configure
+        /// Provider to configure (required)
         #[arg(short, long, value_enum)]
-        pub provider: Option<ProviderType>,
+        pub provider: ProviderType,
 
         /// Force overwrite existing files
         #[arg(short, long)]
@@ -156,9 +156,9 @@ mod cli {
 
     #[derive(Args)]
     pub struct TestArgs {
-        /// Provider to test
+        /// Provider to test (required)
         #[arg(short, long, value_enum)]
-        pub provider: Option<ProviderType>,
+        pub provider: ProviderType,
 
         /// Model to test
         #[arg(short, long)]
@@ -295,22 +295,26 @@ mod cli {
             ..Default::default()
         };
 
-        // Set up provider configuration if specified
-        if let Some(provider_type) = args.provider {
-            let provider_config = match provider_type {
-                ProviderType::OpenAI => ProviderConfig::openai(&args.model, args.api_key.clone()),
-                ProviderType::Ollama => ProviderConfig::ollama(&args.model, args.model_url.clone()),
-                ProviderType::Custom => ProviderConfig::custom(
-                    &args.model_url.clone().unwrap_or_else(|| "http://localhost:8000".to_string()),
-                    &args.model
-                ),
-            };
+        // Set up provider configuration (required)
+        let provider_config = match args.provider {
+            ProviderType::OpenAI => {
+                let mut config = ProviderConfig::openai(&args.model, args.api_key.clone());
+                if let Some(model_url) = &args.model_url {
+                    config = config.with_base_url(model_url.clone());
+                }
+                config
+            },
+            ProviderType::Ollama => ProviderConfig::ollama(&args.model, args.model_url.clone()),
+            ProviderType::Custom => ProviderConfig::custom(
+                &args.model_url.clone().unwrap_or_else(|| "http://localhost:8000".to_string()),
+                &args.model
+            ),
+        };
 
-            config.language_model_params.insert(
-                "provider_config".to_string(),
-                serde_json::to_value(&provider_config)?
-            );
-        }
+        config.language_model_params.insert(
+            "provider_config".to_string(),
+            serde_json::to_value(&provider_config)?
+        );
 
         pb.set_message("Performing extraction...");
 
@@ -414,7 +418,7 @@ OLLAMA_BASE_URL=http://localhost:11434
         }
 
         // Create config file based on provider
-        let provider = args.provider.unwrap_or(ProviderType::Ollama);
+        let provider = args.provider;
         let config_path = config_dir.join("langextract.yaml");
         if !config_path.exists() || args.force {
             let config_content = generate_config_template(provider);
@@ -436,7 +440,7 @@ OLLAMA_BASE_URL=http://localhost:11434
 
         dotenvy::dotenv().ok();
 
-        let provider = args.provider.unwrap_or(ProviderType::Ollama);
+        let provider = args.provider;
         let model = args.model.unwrap_or_else(|| match provider {
             ProviderType::OpenAI => "gpt-3.5-turbo".to_string(),
             ProviderType::Ollama => "mistral".to_string(),
@@ -446,16 +450,37 @@ OLLAMA_BASE_URL=http://localhost:11434
         println!("Provider: {}", style(format!("{:?}", provider)).cyan());
         println!("Model: {}", style(&model).cyan());
 
-        let config = ExtractConfig {
+        let mut config = ExtractConfig {
             model_id: model.clone(),
-            api_key: args.api_key,
-            model_url: args.model_url,
+            api_key: args.api_key.clone(),
+            model_url: args.model_url.clone(),
             debug: true,
             max_char_buffer: 1000,
             max_workers: 1,
             batch_length: 1,
             ..Default::default()
         };
+
+        // Set up provider configuration (required)
+        let provider_config = match args.provider {
+            ProviderType::OpenAI => {
+                let mut config = ProviderConfig::openai(&model, args.api_key.clone());
+                if let Some(model_url) = &args.model_url {
+                    config = config.with_base_url(model_url.clone());
+                }
+                config
+            },
+            ProviderType::Ollama => ProviderConfig::ollama(&model, args.model_url.clone()),
+            ProviderType::Custom => ProviderConfig::custom(
+                &args.model_url.clone().unwrap_or_else(|| "http://localhost:8000".to_string()),
+                &model
+            ),
+        };
+
+        config.language_model_params.insert(
+            "provider_config".to_string(),
+            serde_json::to_value(&provider_config).unwrap()
+        );
 
         let examples = vec![
             ExampleData::new(
