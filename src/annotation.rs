@@ -17,7 +17,9 @@ use std::time::Instant;
 pub struct Annotator {
     language_model: Box<dyn BaseLanguageModel>,
     prompt_template: PromptTemplateStructured,
+    #[allow(dead_code)]
     format_type: FormatType,
+    #[allow(dead_code)]
     fence_output: bool,
 }
 
@@ -84,6 +86,12 @@ impl Annotator {
         // Build the prompt
         let prompt = self.build_prompt(text, additional_context)?;
         
+        // Always show language model call progress
+        println!("🤖 Calling {} model: {} ({} chars input)", 
+            self.language_model.provider_name(),
+            self.language_model.model_id(),
+            text.len());
+        
         if debug {
             println!("🔧 DEBUG: Calling language model with prompt:");
             println!("   Model: {}", self.language_model.model_id());
@@ -102,6 +110,7 @@ impl Annotator {
         // Call the language model
         let results = self.language_model.infer(&[prompt], &kwargs).await?;
         
+        println!("📥 Received response from language model");
         if debug {
             println!("🔧 DEBUG: Received {} batches from language model", results.len());
         }
@@ -199,8 +208,9 @@ impl Annotator {
         // Chunk the text
         let chunks = chunker.chunk_text(text, None)?;
         
+        // Always show chunking progress for user feedback
+        println!("📄 Processing document with {} chunks ({} chars total)", chunks.len(), text.len());
         if debug {
-            println!("🔧 DEBUG: Split text into {} chunks", chunks.len());
             for (i, chunk) in chunks.iter().enumerate() {
                 println!("   Chunk {}: {} chars (offset: {})", i, chunk.char_length, chunk.char_offset);
             }
@@ -209,8 +219,14 @@ impl Annotator {
         // Process chunks in parallel batches
         let mut chunk_results = Vec::new();
         let effective_workers = std::cmp::min(max_workers, batch_length);
+        let total_chunks = chunks.len();
+        let mut processed_chunks = 0;
 
-        for chunk_batch in chunks.chunks(batch_length) {
+        for (batch_idx, chunk_batch) in chunks.chunks(batch_length).enumerate() {
+            // Progress reporting for each batch
+            println!("🔄 Processing batch {} ({}/{} chunks processed)", 
+                batch_idx + 1, processed_chunks, total_chunks);
+
             let batch_futures: Vec<_> = chunk_batch.iter()
                 .take(effective_workers)
                 .map(|chunk| self.process_chunk(chunk, resolver, additional_context, debug))
@@ -222,8 +238,12 @@ impl Annotator {
                 chunk_results.push(result?);
             }
 
+            processed_chunks += chunk_batch.len();
+            println!("✅ Completed batch {} ({}/{} chunks done)", 
+                batch_idx + 1, processed_chunks, total_chunks);
+            
             if debug {
-                println!("🔧 DEBUG: Completed batch of {} chunks", chunk_batch.len());
+                println!("🔧 DEBUG: Batch {} processing details completed", batch_idx + 1);
             }
         }
 
@@ -238,6 +258,7 @@ impl Annotator {
         }
 
         // Aggregate results
+        println!("🔄 Aggregating results from {} chunks...", chunks.len());
         let aggregator = ResultAggregator::new();
         let final_result = aggregator.aggregate_chunk_results(
             chunk_results,
@@ -245,6 +266,9 @@ impl Annotator {
             None,
         )?;
 
+        println!("🎯 Extraction complete! Found {} total extractions", 
+            final_result.extraction_count());
+        
         if debug {
             println!("🔧 DEBUG: Aggregated {} total extractions from {} chunks", 
                 final_result.extraction_count(), chunks.len());
@@ -309,6 +333,7 @@ impl Annotator {
     }
 
     /// Parse the model response into extractions
+    #[allow(dead_code)]
     fn parse_response(&self, response: &str) -> LangExtractResult<Vec<Extraction>> {
         // Try to parse as JSON first
         if let Ok(json_value) = serde_json::from_str::<serde_json::Value>(response) {
@@ -331,6 +356,7 @@ impl Annotator {
     }
 
     /// Parse JSON response into extractions
+    #[allow(dead_code)]
     fn parse_json_response(&self, json: &serde_json::Value) -> LangExtractResult<Vec<Extraction>> {
         let mut extractions = Vec::new();
 
@@ -367,6 +393,7 @@ impl Annotator {
     }
 
     /// Parse a single item (object or primitive) into extractions
+    #[allow(dead_code)]
     fn parse_single_item(&self, item: &serde_json::Value, index: Option<usize>) -> LangExtractResult<Vec<Extraction>> {
         let mut extractions = Vec::new();
 

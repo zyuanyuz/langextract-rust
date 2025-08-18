@@ -5,7 +5,7 @@ use crate::{
     exceptions::{LangExtractError, LangExtractResult}, 
     ExtractConfig
 };
-use serde_json::{Value, Map};
+use serde_json::Value;
 use std::fs;
 use std::path::Path;
 use uuid::Uuid;
@@ -503,10 +503,18 @@ impl Resolver {
             return Err(LangExtractError::configuration("Raw output saving is disabled"));
         }
 
+        // Ensure output directory exists
+        let output_dir = Path::new(&self.validation_config.raw_outputs_dir);
+        if !output_dir.exists() {
+            fs::create_dir_all(output_dir).map_err(|e| {
+                LangExtractError::IoError(e)
+            })?;
+        }
+
         let timestamp = chrono::Utc::now().format("%Y%m%d_%H%M%S").to_string();
         let unique_id = Uuid::new_v4().to_string()[..8].to_string();
         let filename = format!("raw_output_{}_{}.txt", timestamp, unique_id);
-        let filepath = Path::new(&self.validation_config.raw_outputs_dir).join(&filename);
+        let filepath = output_dir.join(&filename);
 
         let mut content = String::new();
         content.push_str(&format!("=== Raw Model Output ===\n"));
@@ -515,6 +523,7 @@ impl Resolver {
             content.push_str(&format!("Metadata: {}\n", meta));
         }
         content.push_str(&format!("Format: {:?}\n", self.format_type));
+        content.push_str(&format!("Content Length: {} chars\n", raw_output.len()));
         content.push_str(&format!("=== Output Content ===\n"));
         content.push_str(raw_output);
         content.push_str("\n=== End Output ===\n");
@@ -523,26 +532,41 @@ impl Resolver {
             LangExtractError::IoError(e)
         })?;
 
-        log::info!("Saved raw output to: {}", filepath.display());
-        Ok(filepath.to_string_lossy().to_string())
+        let path_str = filepath.to_string_lossy().to_string();
+        log::info!("Saved raw output to: {}", path_str);
+        Ok(path_str)
     }
 
     /// Validate and parse model response with raw data preservation
     pub fn validate_and_parse(&self, raw_response: &str, expected_fields: &[String]) -> LangExtractResult<(Vec<Extraction>, ValidationResult)> {
-        // Step 1: Always save raw output first
+        // Step 1: Always save raw output first if enabled
         let raw_file_path = if self.validation_config.save_raw_outputs {
-            Some(self.save_raw_output(raw_response, Some("validation_parse"))?)
+            match self.save_raw_output(raw_response, Some("validation_parse")) {
+                Ok(path) => {
+                    println!("💾 Raw output saved to: {}", path);
+                    Some(path)
+                }
+                Err(e) => {
+                    log::warn!("Failed to save raw output: {}", e);
+                    None
+                }
+            }
         } else {
             None
         };
 
         // Step 2: Attempt to parse the response
+        println!("🔍 Parsing model response...");
         let parse_result = self.parse_response(raw_response);
         
         // Step 3: Validate the parsed data
         let mut validation_result = match &parse_result {
-            Ok(extractions) => self.validate_extractions(extractions, expected_fields),
+            Ok(extractions) => {
+                println!("✅ Successfully parsed {} potential extractions", extractions.len());
+                self.validate_extractions(extractions, expected_fields)
+            }
             Err(parse_error) => {
+                println!("❌ Failed to parse model response");
                 // If parsing failed, create validation result with error
                 ValidationResult {
                     is_valid: false,
@@ -554,20 +578,32 @@ impl Resolver {
                     }],
                     warnings: vec![],
                     corrected_data: None,
-                    raw_output_file: None,
+                    raw_output_file: raw_file_path.clone(), // Set the path here
                     coercion_summary: None,
                 }
             }
         };
 
-        // Step 4: Set the raw output file path in the validation result
-        validation_result.raw_output_file = raw_file_path;
+        // Step 4: Set the raw output file path in the validation result (update if not already set)
+        if validation_result.raw_output_file.is_none() {
+            validation_result.raw_output_file = raw_file_path.clone();
+        }
 
         // Step 5: Return results - even if validation fails, we preserve the raw data
         match parse_result {
             Ok(extractions) => Ok((extractions, validation_result)),
             Err(e) => {
-                log::warn!("Parse failed but raw data saved to: {:?}", validation_result.raw_output_file);
+                // Improved error reporting
+                match &validation_result.raw_output_file {
+                    Some(path) => {
+                        log::warn!("Parse failed but raw data saved to: {}", path);
+                        println!("⚠️  Parse failed - check raw output at: {}", path);
+                    }
+                    None => {
+                        log::warn!("Parse failed and no raw data was saved");
+                        println!("⚠️  Parse failed and raw data could not be saved");
+                    }
+                }
                 Err(e)
             }
         }
