@@ -41,11 +41,26 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("   Model: {}", openai_config.model);
     println!("   Headers: {:?}", openai_config.headers);
     
-    let extract_config = ExtractConfig {
+    let mut extract_config = ExtractConfig {
         model_id: "gpt-3.5-turbo".to_string(),
         api_key: None, // Will load from .env
+        debug: true,
+        
+        // Token-based chunking configuration
+        max_char_buffer: 1000,  // Characters per chunk (respects sentence boundaries)
+        batch_length: 5,        // Process chunks in batches
+        max_workers: 3,         // Concurrent API calls
+        extraction_passes: 1,   // Single pass for demo
+        enable_multipass: false, // Simple configuration
+        
         ..Default::default()
     };
+    
+    // Set the provider configuration
+    extract_config.language_model_params.insert(
+        "provider_config".to_string(),
+        serde_json::to_value(&openai_config)?,
+    );
 
     println!("   Testing extraction...");
     match extract(test_text, Some("Extract names, ages, and jobs"), &examples, extract_config).await {

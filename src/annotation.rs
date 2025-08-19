@@ -2,12 +2,13 @@
 
 use crate::{
     alignment::TextAligner,
-    chunking::{ChunkResult, ChunkingConfig, ResultAggregator, TextChunk, TextChunker},
-    data::{AnnotatedDocument, Extraction, FormatType},
+    chunking::{ChunkResult, ChunkingConfig, ResultAggregator, TextChunk, TextChunker, TokenChunk, ChunkIterator},
+    data::{AnnotatedDocument, Extraction, FormatType, Document},
     exceptions::LangExtractResult,
     inference::BaseLanguageModel,
     prompting::PromptTemplateStructured,
     resolver::Resolver,
+    tokenizer::Tokenizer,
 };
 use futures::future::join_all;
 use std::collections::HashMap;
@@ -57,13 +58,13 @@ impl Annotator {
             return self.process_single_text(text, resolver, additional_context, debug).await;
         }
 
-        // Text is too large, use chunking
+        // Text is too large, use token-based chunking
         if debug {
-            println!("🔧 DEBUG: Text length ({} chars) exceeds buffer limit ({} chars), using chunking", 
+            println!("🔧 DEBUG: Text length ({} chars) exceeds buffer limit ({} chars), using token-based chunking", 
                 text.len(), max_char_buffer);
         }
 
-        self.process_chunked_text(
+        self.process_token_chunked_text(
             text,
             resolver,
             max_char_buffer,
@@ -186,7 +187,8 @@ impl Annotator {
     }
 
     /// Process large text using chunking
-    async fn process_chunked_text(
+    /// Process text with chunking using token-based strategy
+    async fn process_token_chunked_text(
         &self,
         text: &str,
         resolver: &Resolver,
@@ -197,25 +199,76 @@ impl Annotator {
         extraction_passes: usize,
         max_workers: usize,
     ) -> LangExtractResult<AnnotatedDocument> {
-        // Create chunker with appropriate configuration
-        let chunking_config = ChunkingConfig {
-            max_chunk_size: max_char_buffer,
-            overlap_size: max_char_buffer / 10, // 10% overlap
-            ..Default::default()
+        // Create tokenizer and tokenize the text
+        let tokenizer = Tokenizer::new()?;
+        let tokenized_text = tokenizer.tokenize(text)?;
+        
+        // Create document for chunking
+        let document = Document {
+            document_id: None,
+            text: text.to_string(),
+            additional_context: None,
         };
-        let chunker = TextChunker::with_config(chunking_config);
-
-        // Chunk the text
-        let chunks = chunker.chunk_text(text, None)?;
+        
+        // Create token-based chunk iterator
+        let chunk_iter = ChunkIterator::new(&tokenized_text, &tokenizer, max_char_buffer, Some(&document))?;
+        
+        // Collect chunks from iterator
+        let token_chunks: Result<Vec<TokenChunk>, _> = chunk_iter.collect();
+        let token_chunks = token_chunks?;
+        
+        // Convert TokenChunks to TextChunks for compatibility with existing pipeline
+        let mut text_chunks = Vec::new();
+        for (i, token_chunk) in token_chunks.iter().enumerate() {
+            let chunk_text = token_chunk.chunk_text(&tokenizer)?;
+            let char_interval = token_chunk.char_interval(&tokenizer)?;
+            let chunk_len = chunk_text.len();
+            
+            let text_chunk = TextChunk {
+                id: i,
+                text: chunk_text,
+                char_offset: char_interval.start_pos.unwrap_or(0),
+                char_length: chunk_len,
+                document_id: None,
+                has_overlap: false,
+                overlap_info: None,
+            };
+            text_chunks.push(text_chunk);
+        }
         
         // Always show chunking progress for user feedback
-        println!("📄 Processing document with {} chunks ({} chars total)", chunks.len(), text.len());
+        println!("📄 Processing document with {} token-based chunks ({} chars total)", text_chunks.len(), text.len());
         if debug {
-            for (i, chunk) in chunks.iter().enumerate() {
-                println!("   Chunk {}: {} chars (offset: {})", i, chunk.char_length, chunk.char_offset);
+            for (i, chunk) in text_chunks.iter().enumerate() {
+                println!("   Token Chunk {}: {} chars (offset: {})", i, chunk.char_length, chunk.char_offset);
             }
         }
 
+        // Process chunks in parallel batches
+        self.process_text_chunks_in_batches(
+            text_chunks,
+            text,
+            resolver,
+            batch_length,
+            additional_context,
+            debug,
+            extraction_passes,
+            max_workers,
+        ).await
+    }
+
+    /// Common method to process text chunks in parallel batches
+    async fn process_text_chunks_in_batches(
+        &self,
+        chunks: Vec<TextChunk>,
+        original_text: &str,
+        resolver: &Resolver,
+        batch_length: usize,
+        additional_context: Option<&str>,
+        debug: bool,
+        extraction_passes: usize,
+        max_workers: usize,
+    ) -> LangExtractResult<AnnotatedDocument> {
         // Process chunks in parallel batches
         let mut chunk_results = Vec::new();
         let effective_workers = std::cmp::min(max_workers, batch_length);
@@ -262,7 +315,7 @@ impl Annotator {
         let aggregator = ResultAggregator::new();
         let final_result = aggregator.aggregate_chunk_results(
             chunk_results,
-            text.to_string(),
+            original_text.to_string(),
             None,
         )?;
 
@@ -275,6 +328,50 @@ impl Annotator {
         }
 
         Ok(final_result)
+    }
+
+    /// Process text with chunking using character-based strategy (legacy)
+    async fn process_chunked_text(
+        &self,
+        text: &str,
+        resolver: &Resolver,
+        max_char_buffer: usize,
+        batch_length: usize,
+        additional_context: Option<&str>,
+        debug: bool,
+        extraction_passes: usize,
+        max_workers: usize,
+    ) -> LangExtractResult<AnnotatedDocument> {
+        // Create chunker with appropriate configuration
+        let chunking_config = ChunkingConfig {
+            max_chunk_size: max_char_buffer,
+            overlap_size: max_char_buffer / 10, // 10% overlap
+            ..Default::default()
+        };
+        let chunker = TextChunker::with_config(chunking_config);
+
+        // Chunk the text
+        let chunks = chunker.chunk_text(text, None)?;
+        
+        // Always show chunking progress for user feedback
+        println!("📄 Processing document with {} legacy chunks ({} chars total)", chunks.len(), text.len());
+        if debug {
+            for (i, chunk) in chunks.iter().enumerate() {
+                println!("   Legacy Chunk {}: {} chars (offset: {})", i, chunk.char_length, chunk.char_offset);
+            }
+        }
+
+        // Process chunks using common batch processing logic
+        self.process_text_chunks_in_batches(
+            chunks,
+            text,
+            resolver,
+            batch_length,
+            additional_context,
+            debug,
+            extraction_passes,
+            max_workers,
+        ).await
     }
 
     /// Process a single chunk

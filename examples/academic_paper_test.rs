@@ -87,7 +87,7 @@ async fn test_academic_extraction(provider_config: ProviderConfig, provider_name
     println!("{}", "=".repeat(60));
 
     // Read the academic paper file
-    let paper_text = std::fs::read_to_string("system_design.txt")?;
+    let paper_text = std::fs::read_to_string("examples/system_design.txt")?;
     println!("📄 Loaded academic paper: {} characters", paper_text.len());
     
     // Show first few lines for context
@@ -101,35 +101,48 @@ async fn test_academic_extraction(provider_config: ProviderConfig, provider_name
     }
     println!();
 
-    let extract_config = ExtractConfig {
+    let mut extract_config = ExtractConfig {
         model_id: provider_config.model.clone(),
         api_key: provider_config.api_key.clone(),
         format_type: FormatType::Json,
-        max_char_buffer: 6000, // Moderate buffer for academic content
         temperature: 0.2, // Low temperature for consistent academic extraction
         fence_output: None,
         use_schema_constraints: false,
-        batch_length: 6, // Increased batch size for better throughput
-        max_workers: 8, // Increased parallel workers for faster processing
-        additional_context: Some("Extract detailed academic and research information including authors, institutions, citations, methodologies, datasets, metrics, scores, technical terms, and research contributions from this academic paper. Focus on identifying specific names, numbers, references, and technical concepts.".to_string()),
-        resolver_params: std::collections::HashMap::new(),
-        language_model_params: {
-            let mut params = std::collections::HashMap::new();
-            params.insert("provider_config".to_string(), serde_json::to_value(&provider_config)?);
-            params
-        },
         debug: true,
         model_url: Some(provider_config.base_url.clone()),
+        
+        // Token-based chunking configuration optimized for academic papers
+        max_char_buffer: 2000, // Larger chunks for academic context
+        batch_length: 4,       // Process 4 chunks in parallel
+        max_workers: 6,        // Concurrent workers for faster processing
+        
+        // Single-pass extraction for academic content
         extraction_passes: 1,
-        enable_multipass: false,
+        enable_multipass: false, // Can be enabled for very complex papers
         multipass_min_extractions: 5,
         multipass_quality_threshold: 0.8,
+        
+        additional_context: Some("Extract detailed academic and research information including authors, institutions, citations, methodologies, datasets, metrics, scores, technical terms, and research contributions from this academic paper. Focus on identifying specific names, numbers, references, and technical concepts.".to_string()),
+        resolver_params: std::collections::HashMap::new(),
+        language_model_params: std::collections::HashMap::new(),
     };
+    
+    // Set provider configuration
+    extract_config.language_model_params.insert(
+        "provider_config".to_string(),
+        serde_json::to_value(&provider_config)?,
+    );
 
     let examples = create_academic_examples();
     let start_time = std::time::Instant::now();
 
-    println!("🔄 Starting academic extraction...");
+    println!("🔄 Starting academic extraction with token-based chunking...");
+    println!("   Configuration:");
+    println!("   - Max chars per buffer: {} (respects sentence boundaries)", extract_config.max_char_buffer);
+    println!("   - Batch size: {}", extract_config.batch_length);
+    println!("   - Workers: {}", extract_config.max_workers);
+    println!("   - Multi-pass: {}", extract_config.enable_multipass);
+    println!();
     
     match extract(
         &paper_text,
@@ -316,9 +329,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("{}", "=".repeat(80));
 
     // Check if the academic paper file exists
-    if !std::path::Path::new("system_design.txt").exists() {
-        println!("❌ Error: system_design.txt not found!");
-        println!("   Please ensure the academic paper file is in the current directory.");
+    if !std::path::Path::new("examples/system_design.txt").exists() {
+        println!("❌ Error: examples/system_design.txt not found!");
+        println!("   Please ensure the academic paper file is in the examples directory.");
         return Ok(());
     }
 

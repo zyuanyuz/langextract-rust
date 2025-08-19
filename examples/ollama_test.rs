@@ -42,7 +42,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Create provider configuration for Ollama
     let provider_config = ProviderConfig::ollama("mistral", Some("http://localhost:11434".to_string()));
     
-    // Create extraction configuration for Ollama/Mistral
+    // Create extraction configuration for Ollama/Mistral with token-based chunking
     let mut config = ExtractConfig {
         model_id: "mistral".to_string(),
         api_key: None,  // Not needed for Ollama
@@ -52,10 +52,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         use_schema_constraints: false,  // Disable for initial testing
         fence_output: Some(false),  // Let Ollama return raw JSON
         debug: true,
-        extraction_passes: 1,
-        max_char_buffer: 2000,
-        batch_length: 5,
-        max_workers: 2,
+        
+        // Token-based chunking configuration
+        max_char_buffer: 1500,  // Characters per chunk (respects sentence boundaries)
+        batch_length: 3,        // Process 3 chunks in parallel
+        max_workers: 2,         // Use 2 workers for local Ollama
+        extraction_passes: 1,   // Single pass for testing
+        enable_multipass: false, // Disable multi-pass for simple example
+        
         ..Default::default()
     };
 

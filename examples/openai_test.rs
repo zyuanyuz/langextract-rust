@@ -24,15 +24,31 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         ),
     ];
 
-    // Create extraction configuration for OpenAI
-    let config = ExtractConfig {
+    // Create extraction configuration for OpenAI with chunking support
+    let provider_config = langextract_rust::ProviderConfig::openai("gpt-3.5-turbo", None);
+    
+    let mut config = ExtractConfig {
         model_id: "gpt-3.5-turbo".to_string(), // Use a more affordable model for testing
         // API key will be loaded from environment variable OPENAI_API_KEY
         api_key: None,
         temperature: 0.3,  // Lower temperature for more consistent results
         debug: true,
+        
+        // Token-based chunking configuration (text is small but shows capabilities)
+        max_char_buffer: 1000,  // Characters per chunk (respects sentence boundaries)
+        batch_length: 5,        // Process chunks in batches
+        max_workers: 3,         // Concurrent API calls
+        extraction_passes: 1,   // Single pass for simple example
+        enable_multipass: false, // Can be enabled for complex documents
+        
         ..Default::default()
     };
+    
+    // Set provider configuration
+    config.language_model_params.insert(
+        "provider_config".to_string(),
+        serde_json::to_value(&provider_config)?,
+    );
 
     // Text to extract information from
     let text = "Alice Smith is 28 years old and works as a data scientist at Google.";

@@ -31,13 +31,21 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         ),
     ];
 
-    // Create extraction configuration
+    // Create extraction configuration with chunking settings
     let config = ExtractConfig {
         model_id: "gemini-2.5-flash".to_string(),
         // API key can be set via environment variable GEMINI_API_KEY
         api_key: None,
         temperature: 0.3,  // Lower temperature for more consistent results
         debug: true,
+        
+        // Token-based chunking configuration (text is small, but shows options)
+        max_char_buffer: 1000,  // Characters per chunk (respects sentence boundaries)
+        batch_length: 10,       // Chunks processed in parallel
+        max_workers: 4,         // Concurrent workers
+        extraction_passes: 1,   // Single extraction pass
+        enable_multipass: false, // Disable multi-pass for simple example
+        
         ..Default::default()
     };
 

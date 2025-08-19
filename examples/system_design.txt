@@ -1,0 +1,642 @@
+
+License: arXiv.org perpetual non-exclusive license
+arXiv:2508.11524v1 [cs.AI] 15 Aug 2025
+Inspire or Predict? Exploring New Paradigms in Assisting Classical Planners with Large Language Models
+Wenkai Yu1, Jianhang Tang1, Yang Zhang2, Shanjiang Tang3, Kebing Jin1,*, Hankz Hankui Zhuo4,
+Abstract
+
+Addressing large-scale planning problems has become one of the central challenges in the planning community, deriving from the state-space explosion caused by growing objects and actions. Recently, researchers have explored the effectiveness of leveraging Large Language Models (LLMs) to generate helpful actions and states to prune the search space. However, prior works have largely overlooked integrating LLMs with domain-specific knowledge to ensure valid plans. In this paper, we propose a novel LLM-assisted planner integrated with problem decomposition, which first decomposes large planning problems into multiple simpler sub-tasks. Then we explore two novel paradigms to utilize LLMs, i.e., LLM4Inspire and LLM4Predict, to assist problem decomposition, where LLM4Inspire provides heuristic guidance according to general knowledge and LLM4Predict employs domain-specific knowledge to infer intermediate conditions. We empirically validate the effectiveness of our planner across multiple domains, demonstrating the ability of search space partition when solving large-scale planning problems. The experimental results show that LLMs effectively locate feasible solutions when pruning the search space, where infusing domain-specific knowledge into LLMs, i.e., LLM4Predict, holds particular promise compared with LLM4Inspire, which offers general knowledge within LLMs.
+Introduction
+
+Planning aims to generate courses of action or policies to transit given initial states to goal states, as long as formalizing domain models that could be designed by experts or learnt from training data or interactions with the world. However, caused by the increasing number of objects and actions, traditional planning techniques are hard to find high-quality solutions within an acceptable time, limiting the real-world application of planning techniques.
+
+Classical planning methods (Blum and Furst 1997; LaValle 2006) have demonstrated excellent performance on finding feasible plans according to required goals. However, the increasing problem scale brings an exponential growth, resulting in a state-space explosion and limitations on planning efficiency and solution quality (Ghallab, Nau, and Traverso 2014; Helmert 2006; Bonet and Geffner 2001). One natural way is to reduce the complexity of solving the whole problem. For example, (Nau et al. 2003) introduced a hierarchical approach that decomposes large-scale problems into subproblems and further refines them into atomic actions, to avoid exhaustive global state-space search. However, the order of solving sub-tasks has a strong influence on problem decomposition, since sequential connections between some action models strictly restrict the execution.
+
+Furthermore, intrigued by utilizing general knowledge to infer as done by Large Language Models (LLMs), the planning community regards LLMs as policy, by directly querying based on historical observations and actions (Li et al. 2022; Huang et al. 2022a; Ahn et al. 2022; Huang et al. 2022b; Brohan et al. 2022; Zitkovich et al. 2023). According to the built-in common sense, LLMs are utilized to inspire planners in the form of external components (Paulius et al. 2024; Liu et al. 2023), e.g., acting as heuristics, instead of independently solving planning problems due to lacking domain-specific logical relations as constraints (Valmeekam et al. 2023; Kambhampati et al. 2024; Valmeekam, Stechly, and Kambhampati 2024). However, the lack of domain-specific constraints results in disability to guarantee that LLMs generate feasible predictions. Therefore, in this paper, by comparing LLMs-assisted planning based on general knowledge with the one externally constrained with domain-specific knowledge, our aim is to explore: What roles can LLMs play within planning frameworks, and which one shows greater promise for LLM-assisted planning?
+
+Considering dividing the search space and utilizing LLMs to assist planning, in this paper, we propose a novel decomposition-based planner with two distinct paradigms that integrate LLMs into planning frameworks: LLM4Inspire and LLM4Predict. Specifically, since feasible plans depend on the order of achieving goals, we first employ problem decomposition by a directed acyclic graph to divide the original large-scale problem into subproblems. Then we leverage LLMs to assist problem decomposition, i.e., LLM4Inspire and LLM4Predict. As shown in Figure 1, LLM4Inspire utilizes LLM-assisted heuristics by selecting optimal actions toward goals from sets of available actions, where LLM4Predict predicts intermediate states between current states and goals to prune the search space. According to decomposed sub-tasks, we utilize an existing planner to solve them one by one and form complete plans. Through exploring two LLM-assisted planning, the aim of the paper is to investigate whether we can substitute the built-in general knowledge of LLMs for domain-specific knowledge when making inferences. The experimental results demonstrate that predicting states to divide the search space, as done by LLM4Predict, performs better compared with relying on common sense, i.e., LLM4Inspire, indicating the unsubstitutability of domain-specific constraints.
+Refer to caption
+Figure 1: Two paradigms of utilizing LLMs in planning.
+
+In the remainder of the paper, we first introduce related works and a formal definition of planning problems. After that, we present our approach in detail and evaluate our approach by comparing with previous approaches to exhibit its superiority. Finally, we conclude the paper with future work.
+Related Work
+
+Classical planning methods: Heuristic search (Helmert 2006; Hoffmann and Nebel 2001) and graph planning (Blum and Furst 1997) perform well in handling problems with structural rules and moderate scale, but their planning efficiency drops significantly when faced with large-scale challenges. To address these challenges, the divide-and-conquer approach (Hierarchical Task Network, HTN) has been widely adopted and has demonstrated notable success in fields such as logistics and rescue operations (Nau et al. 2003; Alford et al. 2012). The concept of dividing and ruling provides us with clues for dealing with complex problems.
+
+LLMs as planners: There have been works utilizing LLMs to assist in planning tasks, e.g., thought chains (Wei et al. 2022), thought trees (Yao et al. 2023), and zero-shot planners (Huang et al. 2022a), which use prompts to guide LLMs in generating action sequences. (Valmeekam et al. 2023) produces queries using automated planning models and tools to verify LLM answers. (Kambhampati et al. 2024) proposes a framework that combines the generative capabilities of LLM with the verification capabilities of external validators through a tight bidirectional interaction mechanism. Specifically, it is based on a generate-test-critique loop, where using the LLM to generating candidate plans, and an external validator evaluates these candidate plans. All of the above approaches consider the LLM as the exclusive planner, rather than integrating it into an existing planning framework, and therefore do not take advantage of the planning capabilities provided by the framework.
+
+LLMs as components in planner: LLMs demonstrate remarkable potential as world models (Hao et al. 2023), enabling support for complex planning tasks by predicting effective actions and state transitions. Additionally, the world model of LLMs for solving specific problems can be integrated into Monte Carlo Tree Search (MCTS) to expand task planning (Zhao, Lee, and Hsu 2023). Embedding LLMs into the MCTS framework has proven effective. This idea is similar to our work, as LLMs are deeply embedded in existing frameworks. However, whereas their objective is to learn MCTS policies through interactions with the environment, our approach focuses on solving planning problems by embedding LLMs within an existing planner, without relying on any interaction with or learning from the environment.
+Problem Formulation
+
+In this paper, we aim to solve classical planning problems, where a classical planning problem can be formally defined as a triple P=⟨s0,g,D⟩.
+
+    •
+
+    s0 denotes the initial state, represented as a set of ground atoms (propositions) that characterize the facts holding in the initial configuration.
+    •
+
+    g denotes the goal specification, defined as a set of ground atoms that must be satisfied in any solution state.
+    •
+
+    𝒟 denotes the domain model, comprising a finite set of action models. Each action model is a quadruple 𝒜=<a,𝑝𝑟𝑒(a),𝑎𝑑𝑑(a),𝑑𝑒𝑙(a)>, where a is an action name with zero or multiple parameters. 𝑝𝑟𝑒​(a) is a precondition set indicating the conditions under which it can be applied. 𝑎𝑑𝑑​(a) and 𝑑𝑒𝑙​(a) are respectively an adding and deleting list to form the effects of the action.
+
+The aim is to generate a plan p, i.e., a grounded action sequence, to achieve goals g from the initial state s0.
+
+To have a clearer understanding, consider a simplified Blocks domain with three blocks A, B, and C.
+
+Initial state s0: ontable(A), ontable(B), ontable(C), clear(A), clear(B), and clear(C) indicate that A, B, and C are on the table and not stacked.
+
+Goal state g: on(A,B), on(B,C) indicate that the goal is to put A on B, and put B on C
+
+plan p: <pick-up(B), stack(B,C), pick-up(A), stack(A,B)> indicates that we pick up B from the table, place it on C, pick up A, and place it on B.
+LLM-assisted Planning with Problem Decomposition
+Refer to caption
+Figure 2: Two modes of combining LLMs with traditional planners
+
+In this section, we address our LLM-assisted planner for complex planning problems in detail. When tackling complex problems, classical planners face several major challenges: (1) When the problem involves a large number of objects and the state space becomes exceedingly vast, the number of states that the planner must explore grows exponentially. (2) In addition, when achieving certain predicates that constitute parts of the goal state requires an excessively long sequence of steps, the planner cannot traverse the exceedingly deep search tree within the time constraints. (3) For static heuristic functions, they are unable to precisely leverage comprehensive world models to respond to the planner with dynamic and flexible guidance quickly.
+
+To address these issues, we propose a novel LLM-assisted planner integrated with problem decomposition, as shown in Figure 2, comprising six core modules: Model Parser, Instance Disassembler, Instance Factory, Solver, Successor Generators, and LLM-assisted Modules (Inspire / Predict), as shown below:
+1. Model Parser takes domain and instance files as inputs and outputs standardized instance models for planners.
+2. Instance Disassembler receives the instance models, decomposes them into sub-instances based on atomic goal states, and outputs lists of sub-instances.
+3. Instance Factory converts the sub-instance models into standardized PDDL sub-instance files.
+4. Solver employs a general planner, the Fast Downward planner (we call it DW) in this paper.
+5. Successor Generator computes executable action sequences for the current state toward goals.
+6. Inspire / Predict Module generates landmark states to help planners search actions toward the goals and obtain simpler sub-instance models for planners.
+
+Specifically, we first utilize Model Parser to parse PDDL planning problems and decompose the goal state of the complex problem into a list of sub-tasks through Instance disassembler and Instance Factory, thereby constructing an ordered set of sub-instance models for an existing planner, i.e., Solver, to process. Next, for decomposed subproblems that the solver fails to handle due to timeout, we employ LLMs to generate landmark states, which facilitate the creation of simpler sub-instance models and assist the planner in computing actions to achieve the goals, i.e., Successor Generators and Inspire/Predict. Note that we introduce two ways to explore in assisting classical planners with LLMs. Finally, we iteratively plan over sub-instances and decompose complex planning problems until the goal state is achieved.
+Decomposition of Planning Problems
+
+To address large-scale planning problems by reducing problem complexity, we propose a divide-and-conquer method that partitions the original large-scale problem into a set of solvable subproblems, as illustrated in Figure 3. However, in some domains, the complexity of the decomposed problems depends on the order of solving subproblems owing to strict sequential dependencies among sub-goals. For example, in the Blocks domain, if the goal is g={on​(C,B),on​(B,A),on​(D,C)}, it is evident that achieving on​(B,A) must precede on​(C,B), since C cannot be placed on B until B is correctly positioned on A. Therefore, we construct Directed Acyclic Dependency Graphs (DADGs) from the goals and perform topological sorting starting from nodes with zero in-degree to attain ordered sub-goal sequences.
+Refer to caption
+Figure 3: Problem decomposition framework.
+
+Given a planning problem P=<s,g,𝒟>, where goals g=<g1,g2,…,gn> includes a set of sub-goals gi to be achieved. We first build directed acyclic dependency graphs (DADGs) G={G1,G2,…} to indicate the dependencies implied in goals, where each node is an object involved in g and each edge is gi in the form of a predicate indicating that the dependent relations exist between objects. For example, (On A B) is a predicate that indicates object A is on object B. As implementing (On A B) changes the state of object B, it implicitly indicates that object B must be stacked before object A, then we create an edge pointing from B to A.
+
+According to graphs G={G1,G2,…}, we then compute a new sub-goal sequence g^=[g^1,g^2,…,g^n] based on topological sorting. Specifically, we first initialize an empty sub-goal sequence g^=[]. Then we start from a node in Gi with zero in-degree, i.e., the input edge number of nodes, and add the output edge gi into g^. We continuously insert the output edge until all the edges in the graph Gi have been put into g^. We repeat those procedures until all graphs in G have been processed. Note that the order of Gi will not affect the final results, since no constraints exist between them.
+
+During planning, based on the sequential sub-goals g^, we formalize an unresolved sub-goal g^i and a current state s as standard sub-instances Pi=<s,gi^,𝒟> by an instance template in PDDL format, which we predefined based on the domain 𝒟. We utilize the Solver Module to solve <Pi and get a plan pi=[ai​0,ai​1,…]. We regard the last state s′ updated according to pi as the new initial state s. We continuously solve <P0,P1,⋯> until achieving the original goals g. The whole procedure is as shown in Algorithm 1.
+Algorithm 1 Decomposition of planning problems
+1: Input: Goal state g=<g1,g2,..gn>
+2: Output: Ordered sub-goals g^=[g^1,g^2,…,g^n]
+3: Construct DADGs G={G1,G2,…};
+4: Initialize g^=[]
+5: for Gi∈G do
+6:  while Gi≠∅ do
+7:   Find a node x with zero in-degree
+8:   for each output edge g of x where g∉g^  do
+9:    g^=[g^|g]
+10:   end for
+11:   Delete x from Gi
+12:  end while
+13: end for
+14: Output g^
+LLM-Assisted Planning Processes
+
+Although the divide-and-conquer approach indeed reduce the complexity of large-scale planning problems, existing planners may not afford the decomposed search space. In this case, we utilize the comprehensive world knowledge built into LLMs to provide guidance and further divide the unsolvable subproblems. We explore two ways for integrating LLMs into the planning framework, where LLM4Inspire follows previous research to act as a heuristic function and LLM4Predict is additionally constrained with domain-specific knowledge to predict future direction.
+Overview of Two LLM-assisted Modes
+
+As presented in Algorithm 2, we first parse the initial state s0, goal state g, and domain models 𝒟 by the Model Parser (Valmeekam et al. 2023) (Line 1). Next, we utilize the Instance Disassembler to construct DADGs G for g and compute an ordered
+Algorithm 2 LLM-assisted planning with two paradigms
+1: Input: Initial state s0, Goal state g, Domain 𝒟
+2: Output: Plan p
+3: Compute DADGs G based on g and accordingly ordered sub-goals g^=[g^1,g^2,…,g^n];
+4: s=s0,p=[];
+5: for i in n do
+6:  Construct sub-instances Pi=<s,g^i,𝒟> based on the Instance Factory Module;
+7:  Compute sub-plan pi for Pi by the Solver Module;
+8:  if pi≠[] then
+9:   p=[p|pi];
+10:  else
+11:   t​i​m​e​s=0;
+12:   while pi=[] or t​i​m​e​s>10 do
+13:    if Utilize LLM4Inspire then
+14:     Create an initially empty action trajectory 𝒯 to record the actions returned by the LLM.
+15:     Enumerate available actions A^ according to s and 𝒟 based on the Successor Generator;
+16:     Generate plan p^ based on s, g^i, 𝒯 and A^ via LLM4Inspire, and 𝒯=[𝒯|p^].
+17:    else
+18:     Predict an intermediate state s~ according to s and g^i based on LLM4Predict;
+19:     Construct instance P^=<s,s~,𝒟>;
+20:     Compute plan p^ for P^ via the Solver Module;
+21:    end if
+22:    p=[p|p^]
+23:    Update state s according to plan p^;
+24:    Update instance Pi=<s,g^i,𝒟> and compute sub-plan pi for Pi via the Solver Module, t​i​m​e​s++;
+25:   end while
+26:   if t​i​m​e>10 and pi=[] then
+27:    return failure
+28:   else
+29:    p=[p|pi]
+30:   end if
+31:  end if
+32: end for
+33: Return: Final plan p
+
+sub-goals sequence g^=[g^1,…,g^n] through topological sorting (Line 3). Then we assign the current state s by s0 and define an empty plan sequence p (Line 4). As for each sub-goal g^i, we use the Instance Factory to construct a standard sub-instance Pi (Line 6). Then we call an existing planner (Fast Downward in this paper) to solve the problem for a sub-plan pi (Line 7). If a valid plan exists, we record pi via p (Lines 8-9). Otherwise, we use LLMs to generate landmark states s^ to assist the planner, i.e., LLM4Inspire and LLM4Predict (Lines 11-30). Firstly, for LLM4Inspire, we create an empty action trajectory 𝒯 to record the historical actions (Line 14). And we utilize the Successor Generator to compute applicable actions A^ according to s and 𝒟 (Line 15). After that, LLMs select the most appropriate action p^=[a^] (Line 16). Secondly, LLM4Predict returns an intermediate state s~ as a temporary goal based on s and g^i and utilizes Fast Downward to compute plans p^ according to <s,s~,𝒟> (Lines 18-20). Based on p^, we update the state s as well as sub-instance Pi=<s,gi,𝒟> and utilize Fast Downward to solve Pi (Lines 23-24). We repeated the above procedures at most 10 times for achieving gi (Line 25). Nevertheless, we regard P as an unsolvable problem (Lines 26-27). At last, plan p is the final output (Line 33).
+LLM4Inspire (Action-Oriented Jump Planning)
+
+The subsection introduces the first proposed paradigm of LLMs, i.e., LLM4Inspire, utilizing LLMs to provide applicable actions according to current states. Specifically, the Successor Generator first enumerates all executable actions A^ based on the current state s and domain 𝒟. We define a prompt template (please refer to the supplementary) to inform LLMs of available actions, the historical action sequence, the current state, and the goals. Through analyzing possible paths from the current state to the goal state based on their comprehensive knowledge, the LLMs select an optimal action p^ in their eyes. Then we update s by executing p^.
+
+To obtain the set of executable action sequences, the Successor Generator follows a systematic process. First, it enumerates all grounding actions in the domain model 𝒟. Specifically, we first replace all parameter placeholders with objects according to the pre-defined types in the domain models 𝒟 for all possible action-object combinations. Then we filter feasible actions A^={a^0,a^1,…} based on the preconditions and the state s, where p​r​e​(a^i)⊆s.
+LLM4Predict (Intermediate-State-Based Recovery)
+
+The second paradigm LLM4Inspire predicts an intermediate state s~ between the current state s0 and the goal state g. The predicted intermediate state s~ is constrained by another prompt template (please refer to the supplementary), required to only include a few key predicates. Different from the LLM4Inspire template, LLM4Predict is informed by the current state and goals as constraints, required to generate a state between them. At last, we utilize the Solver Module to solve the intermediate problem P^=<s,s~,𝒟> and update the state according to the output plan p^ to continuously plan.
+Refer to caption
+Figure 4: The comparison between prompt templates.
+Analysis and Discussion
+
+Figure 4 illustrates prompt templates of two LLM-based approaches. Both LLM4Inspire and LLM4Predict inform LLMs of the domain name, initial state, and goal state. Differently, LLM4Inspire requires LLMs to evaluate actions from a set of available actions, where LLM4Predict generates an intermediate state instead. The candidate plan p^ provided by LLM4Inspire can be regarded as high-level heuristic guidance. If such a candidate plan of length k is treated as a single-step guide, it is equivalent to skipping k−1 levels in the search tree, thereby reducing the problem scale, as shown in Figure 5. Although the selected action as done by LLMs may not be the optimal one, it is useful to prune for planner to solve through continuously compressing the search space.
+Refer to caption
+Figure 5: The overview of the impact of two LLM-assisted modes on the search space for subproblems
+
+LLM4Predict can be regarded as another novel LLM-based divide-and-conquer method. If there exists a suitable intermediate state s~ that can partition the problem P into two subproblems P1=<s,s~,𝒟> and P2=<s,g,𝒟> where both are independently solvable, then P is also solvable. The solution is the concatenation of the two sub-solutions. Formally, if p1 and p2 are solutions of P1 and P2 respectively, then p=p1∘p2 is necessarily a solution to P. This decomposition is advantageous because the solution lengths for P1 and P2 are typically much shorter than the original solution length k, so their respective search complexities (denoted by O​(b|p1|) and O​(b|p2|)) sum to far less than the direct solution complexity O​(bk). And b refers to the branching factor of the search tree, the average number of actions, that can be executed in each state. Especially when |π1|≈|π2|≈k/2, the resulting complexity reduction is exponential.
+Experiments
+
+As shown in Table 1, we evaluate the performance across four domains: Blocks, Logistics, Depot, and Mystery (Round 1). The domain specifications and problem instances are from the International Planning Competitions (IPC) 1
+1
+https://github.com/potassco/pddl-instances.
+
+1. Blocks requires a robot to pick up and put down blocks to achieve an initial configuration into a specified goal arrangement.
+
+2. Logistics requires trucks and airplanes to transfer packages to the target locations, where trucks drive within a single city and airplanes fly between airports.
+
+3. Depot includes trucks transporting crates around. The goal is to stack crates at their destinations.
+
+4. Mystery (Round 1) includes vehicles and cargo items and some amount of fuel, where the goal is to load the cargo items onto vehicles and transfer them to goals with limited fuel. Note that the domain replaces all names of action, predicate, and objects with random words.
+Domain 	Action 	Predicate 	Objects types 	Objects number 	Instances
+Blocks 	4 	1 	1 	4-25 	50
+Logistic 	4 	3 	6 	15-51 	42
+Depot 	5 	6 	4 	15-72 	22
+Mystery 	3 	7 	5 	21-42 	30
+Table 1: Four domains used in the experiment
+
+The Blocks and Depot domains require the planner to effectively handle sequential constraints and dependencies. The Logistics domain considers a large number of object properties and their state transitions, resulting in a large search space. The Mystery (Round 1) domain contains illogical action, predicate, and object names, helping us critically study the ability of LLMs to guide planners.
+
+To investigate the planning performance, our comparative experiments include the following methods:
+
+1. Fast Downward: We employ Fast Downward (Helmert 2006) as a primary benchmark, one of the most widely used planners in the planning community.
+
+2. Decomposition: We employ Fast Downward with our decomposition methods.
+
+3. DeepSeek-R1: We write specific domain information, current state, and goal state into the prompt template and instruct DeepSeek-R1 to perform planning.
+
+4. LLM4Inspire: It is the method proposed in this paper, configured with leveraging LLMs to provide an executable action. Note that the LLM employed is DeepSeek-R1.
+
+5. LLM4Predict: It is the method proposed in this paper, configured with leveraging LLMs to predict an intermediate state. Note that the LLM employed is DeepSeek-R1.
+
+We evaluate the approaches on the following aspects:
+
+1. Planning success rate: This metric evaluates valid plans generated by the planner within a 3-minute time limit. Note that the DeepSeek-R1 method is not suitable for this cut-time limitation, since the time taken to call LLMs can be influenced by factors, e.g., internet speed and device performance. When LLMs are deployed locally, the time required to call LLMs is significantly reduced. Therefore, the time consumed by calling LLMs is not included in our time limit.
+
+2. Successful plan length: We evaluate the number of steps in the plans generated by different methods after successfully solving instances. This metric reflects whether our method can balance planning success with efficiency. Typically, shorter plans indicate better performance.
+
+3. LLMs calls and solver’s time consumption: This metric is to explore which LLM-based method is more effective at simplifying instances. The solver’s planning time can be regarded as an indicator for evaluating the size of the search space, while the number of LLMs calls represents the resource consumption. Fewer LLM calls indicate a stronger ability of the method to simplify the problem.
+
+All experiments run on a computer with Intel(R) Core(TM) i7-14650HX (24 cores, 2.2GHz), 32,768MB of RAM, and Windows 11. Fast Downward is deployed on Ubuntu (version 24.06.1) system running on VMware.
+Experimental Results
+Results on planning success rate
+
+Table 2 shows the ratio of successful cases for each method in the four fields to the total number of cases. Compared to the other three methods, LLM4Predict performs exceptionally well across all domains, particularly achieving a success rate of over 95% in the Blocks, Logistics, and Depot domains. As noted in (Nau et al. 2003; Alford et al. 2012), problem decomposition is a critical reason for the outstanding performance. Specifically, the success rate of Fast Downward can be viewed as an indicator of domain complexity. The lower the success rate of Fast Downward is, the larger the corresponding search space is, indicating complex constraints between the goals. For LLM-based approaches, we believe that the higher the planning success rate reflects the powerful heuristic and reasoning capabilities of LLMs. Both LLM4Predict and LLM4Inspire leverage the planning capabilities along with the extensive general knowledge and domain-specific reasoning powers of LLMs. Note that although Mystery replaces action names with random words, it does not affect the traditional planner. However, LLMs struggle when facing domains where the logical relationships between objects and actions cannot be inferred from their literal meanings.
+Method 	Experiment Domains
+Blocks 	Logistics 	Depot 	Mystery(Round-1)
+Fast Downward 	26/50 	17/42 	5/22 	15/30
+DeepSeek-R1 	35/50 	13/42 	4/22 	0/30
+LLM4Inspire 	37/50 	42/42 	17/22 	15/30
+LLM4Predict 	49/50 	42/42 	19/22 	15/30
+Table 2: Comparison of methods across different domains.
+Results on successful plan length
+
+Figure 6 shows the performance in the Blocks domain, where the difficulty of the instances increases as the instance number rises. All four methods consistently generate plans for the first 20 problems with approximately plan lengths. However, Fast Downward can not handle the problems after instance 26 due to an unaffordable search space. Next, DeepSeek-R1 performs exceptionally well in this domain. If we disregard the cut-off time, DeepSeek-R1 has already surpassed Fast Downward within the Blocks domain. Since instances between 25 and 35 can be solved using the Decomposition, LLM4Predict and LLM4Inspire perform similarly. After instance 35, the performance of LLM4Predict surpasses LLM4Inspire, indicating that in the Block domain, using LLMs to predict according to domain-specific knowledge is more advantageous than using general knowledge as heuristics.
+Refer to caption
+Figure 6: Plan Lengths results in the Blocks domain
+
+Figure 7 illustrates the performance in the Logistics domain. The overall results are slightly inferior to the Blocks domain, indirectly indicating more complex logistic relations. Impressively, both LLM4Predict and LLM4Inspire achieved 100%, demonstrating that divide-and-conquer methods are efficient in domains with no mutual influence between predicates of goals. However, DeepSeek-R1 performs poorly. Surprisingly, the number of planning steps required for its successful plans is fewer than those of the other methods. This indirectly suggests that although the divide-and-conquer approach can solve complex problems, it does come at the cost of some planning performance.
+Refer to caption
+Figure 7: Plan Lengths results in the Logistics domain
+
+In the Depot domain, as shown in Figure 8, DeepSeek-R1 and Fast Downward perform poorly, where LLM4Predict and LLM4Inspire solve mostly problems. LLM4Predict successfully solves instances 5 and 20, where LLM4Inspire cannot, while the reverse exists for instances 15 and 18. We consider that LLM4Predict may alter previously achieved sub-goals when exploring towards the intermediate state, resulting in invalid plans when concatenating. Therefore, in domains where LLMs lack expertise, using LLMs to predict intermediate states for decomposition may lead to failures due to inappropriate generations provided by the LLMs.
+
+Figure 9 presents the results for the Mystery domain. DeepSeek-R1 performs extremely poorly in this domain, which prevents it from providing effective guidance for both LLM4Predict and LLM4Inspire. This further demonstrates the necessity of integrating planners with LLMs, as relying solely on a planner or exclusively on LLMs is insufficient to fully address complex problems across different domains.
+Refer to caption
+Figure 8: Plan Lengths for four Methods in Depot domain
+Refer to caption
+Figure 9: Plan Lengths for four Methods in Mystery domain
+Results on LLMs calls and Solver’s time consumption
+
+Figure 10 shows the total number of LLM calls and the total planning time consumed by Solver for all instances that were successfully solved by both LLM4Predict and LLM4Inspire in the Blocks and Depot domains. Red bars represent LLM4Predict, and blue bars represent LLM4Inspire. The bar chart on the left indicates the number of LLM calls, while the right shows the planning time consumed by Solver. In both domains, LLM4Predict consistently requires fewer LLM calls and less planning time. This indicates that the LLM4Predict paradigm is more effective at pushing the problem’s search space into the planner’s solvable domain.
+Refer to caption
+Figure 10: LLM calls and the running time.
+Conclusion
+
+In this paper, we propose a novel LLM-assisted planner integrated with problem decomposition, which first decomposes large planning problems into multiple simple sub-tasks. Then we explore two novel paradigms to utilize LLMs, i.e., LLM4Inspire and LLM4Predict, to assist problem decomposition. The experimental results have validated the effectiveness of the divide-and-conquer approach. Furthermore, the experimental results demonstrate the capability of utilizing LLMs to handle complex tasks. Specifically, LLM4Inspire provides heuristic guidance according to general knowledge, and LLM4Predict employs domain-specific knowledge to infer intermediate conditions. In the future, we intend to explore fine-tuning LLMs to infuse them with domain-specific knowledge when large-scale planning.
+References
+
+    Ahn et al. (2022)
+
+Ahn, M.; Brohan, A.; Brown, N.; Chebotar, Y.; Cortes, O.; David, B.; Finn, C.; Fu, C.; Gopalakrishnan, K.; Hausman, K.; et al. 2022. Do as i can, not as i say: Grounding language in robotic affordances. arXiv preprint arXiv:2204.01691.
+Alford et al. (2012)
+Alford, R.; Shivashankar, V.; Kuter, U.; and Nau, D. 2012. HTN problem spaces: Structure, algorithms, termination. In Proceedings of the International Symposium on Combinatorial Search, volume 3, 2–9.
+Blum and Furst (1997)
+Blum, A. L.; and Furst, M. L. 1997. Fast planning through planning graph analysis. Artificial intelligence, 90(1-2): 281–300.
+Bonet and Geffner (2001)
+Bonet, B.; and Geffner, H. 2001. Planning as heuristic search. Artificial Intelligence, 129(1-2): 5–33.
+Brohan et al. (2022)
+Brohan, A.; Brown, N.; Carbajal, J.; Chebotar, Y.; Dabis, J.; Finn, C.; Gopalakrishnan, K.; Hausman, K.; Herzog, A.; Hsu, J.; et al. 2022. Rt-1: Robotics transformer for real-world control at scale. arXiv preprint arXiv:2212.06817.
+Ghallab, Nau, and Traverso (2014)
+Ghallab, M.; Nau, D.; and Traverso, P. 2014. Automated planning. Theory and Practice.
+Hao et al. (2023)
+Hao, S.; Gu, Y.; Ma, H.; Hong, J. J.; Wang, Z.; Wang, D. Z.; and Hu, Z. 2023. Reasoning with language model is planning with world model. arXiv preprint arXiv:2305.14992.
+Helmert (2006)
+Helmert, M. 2006. The fast downward planning system. Journal of Artificial Intelligence Research, 26: 191–246.
+Hoffmann and Nebel (2001)
+Hoffmann, J.; and Nebel, B. 2001. The FF planning system: Fast plan generation through heuristic search. Journal of Artificial Intelligence Research, 14: 253–302.
+Huang et al. (2022a)
+Huang, W.; Abbeel, P.; Pathak, D.; and Mordatch, I. 2022a. Language models as zero-shot planners: Extracting actionable knowledge for embodied agents. In International conference on machine learning, 9118–9147. PMLR.
+Huang et al. (2022b)
+Huang, W.; Xia, F.; Xiao, T.; Chan, H.; Liang, J.; Florence, P.; Zeng, A.; Tompson, J.; Mordatch, I.; Chebotar, Y.; et al. 2022b. Inner monologue: Embodied reasoning through planning with language models. arXiv preprint arXiv:2207.05608.
+Kambhampati et al. (2024)
+Kambhampati, S.; Valmeekam, K.; Guan, L.; Verma, M.; Stechly, K.; Bhambri, S.; Saldyt, L. P.; and Murthy, A. B. 2024. Position: LLMs can’t plan, but can help planning in LLM-modulo frameworks. In Forty-first International Conference on Machine Learning.
+LaValle (2006)
+LaValle, S. M. 2006. Planning algorithms. Cambridge university press.
+Li et al. (2022)
+Li, S.; Puig, X.; Paxton, C.; Du, Y.; Wang, C.; Fan, L.; Chen, T.; Huang, D.-A.; Akyürek, E.; Anandkumar, A.; et al. 2022. Pre-trained language models for interactive decision-making. Advances in Neural Information Processing Systems, 35: 31199–31212.
+Liu et al. (2023)
+Liu, B.; Jiang, Y.; Zhang, X.; Liu, Q.; Zhang, S.; Biswas, J.; and Stone, P. 2023. Llm+ p: Empowering large language models with optimal planning proficiency. arXiv preprint arXiv:2304.11477.
+Nau et al. (2003)
+Nau, D. S.; Au, T.-C.; Ilghami, O.; Kuter, U.; Murdock, J. W.; Wu, D.; and Yaman, F. 2003. SHOP2: An HTN planning system. Journal of artificial intelligence research, 20: 379–404.
+Paulius et al. (2024)
+Paulius, D.; Agostini, A.; Quartey, B.; and Konidaris, G. 2024. Bootstrapping object-level planning with large language models. arXiv preprint arXiv:2409.12262.
+Valmeekam et al. (2023)
+Valmeekam, K.; Marquez, M.; Sreedharan, S.; and Kambhampati, S. 2023. On the planning abilities of large language models-a critical investigation. Advances in Neural Information Processing Systems, 36: 75993–76005.
+Valmeekam, Stechly, and Kambhampati (2024)
+Valmeekam, K.; Stechly, K.; and Kambhampati, S. 2024. LLMs Still Can’t Plan; Can LRMs? A Preliminary Evaluation of OpenAI’s o1 on PlanBench. arXiv preprint arXiv:2409.13373.
+Wei et al. (2022)
+Wei, J.; Wang, X.; Schuurmans, D.; Bosma, M.; Xia, F.; Chi, E.; Le, Q. V.; Zhou, D.; et al. 2022. Chain-of-thought prompting elicits reasoning in large language models. Advances in neural information processing systems, 35: 24824–24837.
+Yao et al. (2023)
+Yao, S.; Yu, D.; Zhao, J.; Shafran, I.; Griffiths, T.; Cao, Y.; and Narasimhan, K. 2023. Tree of thoughts: Deliberate problem solving with large language models. Advances in neural information processing systems, 36: 11809–11822.
+Zhao, Lee, and Hsu (2023)
+Zhao, Z.; Lee, W. S.; and Hsu, D. 2023. Large language models as commonsense knowledge for large-scale task planning. Advances in neural information processing systems, 36: 31967–31987.
+Zitkovich et al. (2023)
+
+    Zitkovich, B.; Yu, T.; Xu, S.; Xu, P.; Xiao, T.; Xia, F.; Wu, J.; Wohlhart, P.; Welker, S.; Wahid, A.; et al. 2023. Rt-2: Vision-language-action models transfer web knowledge to robotic control. In Conference on Robot Learning, 2165–2183. PMLR.
+
+Appendix A A Appendix
+A.1 PDDL Domain Definitions for Experiments
+
+Below, we present the PDDL domain files used in each experimental planning domain. These domain definitions specify the types, predicates, and actions that characterize the structure and dynamics of each benchmark.
+The Blocks Domain
+
+The Blocks domain is described in the PDDL language as follows:
+(define (domain BLOCKS)
+(:requirements :strips)
+(:predicates
+(on ?x ?y)
+(ontable ?x)
+(clear ?x)
+(handempty)
+(holding ?x))
+(:action pick-up
+:parameters
+(?x)
+:precondition
+(and (clear ?x)
+(ontable ?x)
+(handempty))
+:effect
+(and (not (ontable ?x))
+(not (clear ?x))
+(not (handempty))
+(holding ?x)))
+(:action put-down
+:parameters
+(?x)
+:precondition
+(holding ?x)
+:effect
+(and (not (holding ?x))
+(clear ?x)
+(handempty)
+(ontable ?x)))
+(:action stack
+:parameters
+(?x ?y)
+:precondition
+(and (holding ?x)
+(clear ?y))
+:effect
+(and (not (holding ?x))
+(not (clear ?y))
+(clear ?x)
+(handempty)
+(on ?x ?y)))
+(:action unstack
+:parameters
+(?x ?y)
+:precondition
+(and (on ?x ?y)
+(clear ?x)
+(handempty))
+:effect
+(and (holding ?x)
+(clear ?y)
+(not (clear ?x))
+(not (handempty))
+(not (on ?x ?y)))))
+
+The Blocks domain models a classic block-stacking environment, where actions include picking up, putting down, stacking, and unstacking blocks. The domain file defines block objects, table surfaces, and relevant predicates for representing block positions and hand status, supporting complex tower-building and rearrangement tasks.
+The Logistics Domain
+
+The Logistics domain is described in the PDDL language as follows:
+(define (domain logistics)
+(:requirements :strips)
+(:predicates
+(package ?obj)
+(truck ?truck)
+(airplane ?airplane)
+(airport ?airport)
+(location ?loc)
+(in-city ?obj ?city)
+(city ?city)
+(at ?obj ?loc)
+(in ?obj ?obj))
+(:action load-truck
+:parameters
+(?obj ?truck ?loc)
+:precondition
+(and (package ?obj)
+(truck ?truck)
+(location ?loc)
+(at ?truck ?loc)
+(at ?obj ?loc))
+:effect
+(and (not (at ?obj ?loc))
+(in ?obj ?truck)))
+(:action load-airplane
+:parameters
+(?obj ?airplane ?loc)
+:precondition
+(and (package ?obj)
+(airplane ?airplane)
+(location ?loc)
+(at ?obj ?loc)
+(at ?airplane ?loc))
+:effect
+(and (not (at ?obj ?loc))
+(in ?obj ?airplane)))
+(:action unload-truck
+:parameters
+(?obj ?truck ?loc)
+:precondition
+(and (package ?obj)
+(truck ?truck)
+(location ?loc)
+(at ?truck ?loc)
+(in ?obj ?truck))
+:effect
+(and (not (in ?obj ?truck))
+(at ?obj ?loc)))
+(:action unload-airplane
+:parameters
+(?obj ?airplane ?loc)
+:precondition
+(and (package ?obj)
+(airplane ?airplane)
+(location ?loc)
+(in ?obj ?airplane)
+(at ?airplane ?loc))
+:effect
+(and (not (in ?obj ?airplane))
+(at ?obj ?loc)))
+(:action drive-truck
+:parameters
+(?truck ?loc-from ?loc-to ?city)
+:precondition
+(and (truck ?truck)
+(location ?loc-from)
+(location ?loc-to)
+(city ?city)
+(at ?truck ?loc-from)
+(in-city ?loc-from ?city)
+(in-city ?loc-to ?city))
+:effect
+(and (not (at ?truck ?loc-from))
+(at ?truck ?loc-to)))
+(:action fly-airplane
+:parameters
+(?airplane ?loc-from ?loc-to)
+:precondition
+(and (airplane ?airplane)
+(airport ?loc-from)
+(airport ?loc-to)
+(at ?airplane ?loc-from))
+:effect
+(and (not (at ?airplane ?loc-from))
+(at ?airplane ?loc-to))))
+
+The Logistics domain describes the transportation of packages between locations using trucks and airplanes. The domain file specifies object types such as packages, trucks, airplanes, and locations. Actions include loading, unloading, driving, and flying, along with predicates to track object locations and vehicle states.
+The Depot Domain
+
+The Depot domain is described in the PDDL language as follows:
+(define (domain Depot)
+(:requirements :typing)
+(:types
+place locatable - object
+depot distributor - place
+truck hoist surface - locatable
+pallet crate - surface)
+(:predicates
+(at ?x - locatable ?y - place)
+(on ?x - crate ?y - surface)
+(in ?x - crate ?y - truck)
+(lifting ?x - hoist ?y - crate)
+(available ?x - hoist)
+(clear ?x - surface))
+(:action drive
+:parameters
+(?x - truck
+?y - place
+?z - place)
+:precondition
+(and (at ?x ?y))
+:effect
+(and (not (at ?x ?y))
+(at ?x ?z)))
+(:action lift
+:parameters
+(?x - hoist
+?y - crate
+?z - surface
+?p - place)
+:precondition
+(and (at ?x ?p)
+(available ?x)
+(at ?y ?p)
+(on ?y ?z)
+(clear ?y))
+:effect
+(and (not (at ?y ?p))
+(lifting ?x ?y)
+(not (clear ?y))
+(not (available ?x))
+(clear ?z)
+(not (on ?y ?z))))
+(:action drop
+:parameters
+(?x - hoist
+?y - crate
+?z - surface
+?p - place)
+:precondition
+(and (at ?x ?p)
+(at ?z ?p)
+(clear ?z)
+(lifting ?x ?y))
+:effect
+(and (available ?x)
+(not (lifting ?x ?y))
+(at ?y ?p)
+(not (clear ?z))
+(clear ?y)
+(on ?y ?z)))
+(:action load
+:parameters
+(?x - hoist
+?y - crate
+?z - truck
+?p - place)
+:precondition
+(and (at ?x ?p)
+(at ?z ?p)
+(lifting ?x ?y))
+:effect (and
+(not (lifting ?x ?y))
+(in ?y ?z)
+(available ?x)))
+(:action unload
+:parameters
+(?x - hoist
+?y - crate
+?z - truck
+?p - place)
+:precondition
+(and (at ?x ?p)
+(at ?z ?p)
+(available ?x)
+(in ?y ?z))
+:effect
+(and (not (in ?y ?z))
+(not (available ?x))
+(lifting ?x ?y))))
+
+The Depot domain integrates elements of logistics and stacking. It involves transporting crates using trucks and stacking them in depots with hoists. The domain file includes types for trucks, hoists, crates, depots, and pallets, along with actions for loading, unloading, stacking, and captured the states of object space and logistics.
+The Mystery(Round 1) Domain
+
+The Mystery domain (Round 1) is described in the PDDL language as follows:
+(define (domain mystery-strips)
+(:predicates
+(province ?x)
+(planet ?x)
+(food ?x)
+(pleasure ?x)
+(pain ?x)
+(eats ?n1 ?n2)
+(craves ?v ?n)
+(fears ?c ?v)
+(locale ?n ?a)
+(harmony ?v ?s)
+(attacks ?i ?j)
+(orbits ?i ?j))
+(:action overcome
+:parameters
+(?c ?v ?n ?s1 ?s2)
+:precondition
+(and (pain ?c)
+(pleasure ?v)
+(craves ?c ?n)
+(craves ?v ?n)
+(food ?n)
+(harmony ?v ?s2)
+(planet ?s2)
+(orbits ?s1 ?s2)
+(planet ?s1))
+:effect
+(and (not (craves ?c ?n))
+(fears ?c ?v)
+(not (harmony ?v ?s2))
+(harmony ?v ?s1)))
+(:action feast
+:parameters
+(?v ?n1 ?n2 ?l1 ?l2)
+:precondition
+(and (craves ?v ?n1)
+(food ?n1)
+(pleasure ?v)
+(eats ?n1 ?n2)
+(food ?n2)
+(locale ?n1 ?l2)
+(attacks ?l1 ?l2))
+:effect
+(and (not (craves ?v ?n1))
+(craves ?v ?n2)
+(not (locale ?n1 ?l2))
+(locale ?n1 ?l1)))
+(:action succumb
+:parameters
+(?c ?v ?n ?s1 ?s2)
+:precondition
+(and (fears ?c ?v)
+(pain ?c)
+(pleasure ?v)
+(craves ?v ?n)
+(food ?n)
+(harmony ?v ?s1)
+(orbits ?s1 ?s2))
+:effect
+(and (not (fears ?c ?v))
+(craves ?c ?n)
+(not (harmony ?v ?s1))
+(harmony ?v ?s2))))
+
+The Mystery (Round 1) domain is designed to obscure the semantics of actions and objects, increasing planning difficulty. While structurally similar to logistics, all object and action names are abstract or anonymized. The domain file defines generic object types and actions, requiring planners to reason without relying on meaningful names or domain knowledge.
+A.2 Representative Prompts for Each Approach
+
+Below, we provide the prompt templates used for each method in our experiments. For illustration, each template is presented as it is applied in the Blocks domain.
+Prompt for LLM4Predict
+
+Below is the prompt template for the LLM4Predict method:
+Role:
+You are a large language model specializing in automated planning problem solving.
+Core Task:
+Your task is to operate in the Blocks World domain (as specified in the International Planning Competition’s Blocks domain) and, given an initial state and a goal state, predict a reasonable intermediate state (i.e., a midpoint milestone) to decompose a long planning path into two stages.
+Core Task Requirements:
+Generate Intermediate State: Output only one intermediate state that lies between the initial state and the goal state. The closer the intermediate state is to the midpoint of the transition process, the more effective the decomposition.
+Output Format:
+Return the intermediate state as a JSON array. Do not output any explanatory text or natural language description; **only return the JSON array content.**
+State Validity Rules: The intermediate state must not be identical to the goal state, nor may it exist in the initial state.
+Only return 1-2 key predicates, rather than the complete state. **(For example: [[’on’, [’X’, ’Y’]]] or [[’ontable’, [’X’]], [’on’, [’X’, ’Y’]]])**
+The goal state: XXX
+The init state: XXX
+Prompt for LLM4Inspire
+
+Below is the prompt template for the LLM4Inspire method:
+Role:
+You are an expert in intelligent planning, specializing in automated planning for the Blocks World domain (as defined by the International Planning Competition).
+Core Task:
+Your objective is to evaluate each applicable action based on the provided current state, goal state, history of executed actions, and the list of applicable actions, and return the most promising action.
+Output Requirements:
+Do not return any action that is not in the list of applicable actions. The output cannot be empty.
+Only output the optimal action; do not include any additional text. Use the standardized output format: (action_name, action_params)
+The goal state: XXX
+The init state: XXX
+The history of actions: XXX
+The applicable actions: XXX
+Prompt for asking Deepseek-R1
+
+Below is the prompt template to ask Deekseek-R1 for a plan:
+Role:
+You are a large language model specializing in automated planning problem solving.
+Core Task:
+Your task is to operate in the Blocks World domain (as specified in the International Planning Competition’s Blocks domain) and, given an initial state and a goal state, return an execution plan.
+Output Requirements:
+Each action should occupy a separate line and include both the action name and its parameters. For example: (unstack a b).
+The goal state: XXX
+The init state: XXX

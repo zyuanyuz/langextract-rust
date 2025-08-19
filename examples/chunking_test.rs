@@ -46,7 +46,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Create provider configuration for Ollama
     let provider_config = ProviderConfig::ollama("mistral", Some("http://localhost:11434".to_string()));
     
-    // Create extraction configuration for chunking
+    // Create extraction configuration for token-based chunking
     let mut config = ExtractConfig {
         model_id: "mistral".to_string(),
         api_key: None,  // Not needed for Ollama
@@ -57,11 +57,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         fence_output: Some(false),  // Let Ollama return raw JSON
         debug: true,
         
-        // Chunking parameters
-        max_char_buffer: 800,  // Small buffer to force chunking
+        // Token-based chunking parameters
+        max_char_buffer: 800,  // Characters per chunk (respects sentence boundaries)
         batch_length: 3,       // Process 3 chunks in parallel
-        max_workers: 2,        // Use 2 workers
-        extraction_passes: 1,
+        max_workers: 2,        // Use 2 workers for Ollama
+        extraction_passes: 1,  // Single pass for testing
+        enable_multipass: false, // Disable multi-pass for this example
         
         ..Default::default()
     };
@@ -72,14 +73,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         serde_json::to_value(&provider_config)?,
     );
 
-    println!("⚙️  Chunking Configuration:");
-    println!("   Max chars per chunk: {}", config.max_char_buffer);
+    println!("⚙️  Token-Based Chunking Configuration:");
+    println!("   Max chars per buffer: {} (respects sentence boundaries)", config.max_char_buffer);
     println!("   Batch length: {}", config.batch_length);
     println!("   Max workers: {}", config.max_workers);
     println!("   Extraction passes: {}", config.extraction_passes);
+    println!("   Multi-pass enabled: {}", config.enable_multipass);
+    println!("   Debug mode: {}", config.debug);
     println!();
 
-    println!("🔄 Starting extraction with automatic chunking...");
+    println!("🔄 Starting extraction with token-based chunking...");
+    println!("   Using intelligent sentence boundary detection");
+    println!("   Chunks will respect linguistic structure");
 
     // Perform extraction with chunking
     match extract(

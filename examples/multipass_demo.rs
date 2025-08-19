@@ -81,26 +81,38 @@ The research lab is located at 450 Jane Stanford Way, Stanford, CA 94305, Buildi
     
     // Test 1: Single-pass extraction (baseline)
     println!("\n1️⃣ Single-Pass Extraction (Baseline):");
-    let single_pass_config = ExtractConfig {
+    let mut single_pass_config = ExtractConfig {
         model_id: "mistral".to_string(),
         api_key: None,
         format_type: FormatType::Json,
-        max_char_buffer: 1000, // Smaller buffer to force chunking
         temperature: 0.1,
         fence_output: Some(true),
         use_schema_constraints: false,
-        batch_length: 1,
-        max_workers: 1,
+        debug: true,
+        model_url: Some("http://localhost:11434".to_string()),
+        
+        // Token-based chunking configuration
+        max_char_buffer: 1000,  // Smaller buffer to force chunking and test multi-pass
+        batch_length: 2,        // Process chunks in small batches
+        max_workers: 2,         // Use 2 workers for local Ollama
+        
+        // Single-pass settings
+        extraction_passes: 1,
+        enable_multipass: false, // Single pass baseline
+        multipass_min_extractions: 1,
+        multipass_quality_threshold: 0.3,
+        
         additional_context: None,
         resolver_params: HashMap::new(),
         language_model_params: HashMap::new(),
-        debug: true,
-        model_url: Some("http://localhost:11434".to_string()),
-        extraction_passes: 1,
-        enable_multipass: false, // Single pass
-        multipass_min_extractions: 1,
-        multipass_quality_threshold: 0.3,
     };
+    
+    // Add Ollama provider configuration
+    let provider_config = langextract_rust::ProviderConfig::ollama("mistral", Some("http://localhost:11434".to_string()));
+    single_pass_config.language_model_params.insert(
+        "provider_config".to_string(),
+        serde_json::to_value(&provider_config)?,
+    );
 
     match extract(source_text, None, &examples, single_pass_config).await {
         Ok(result) => {
@@ -129,26 +141,37 @@ The research lab is located at 450 Jane Stanford Way, Stanford, CA 94305, Buildi
 
     // Test 2: Multi-pass extraction with enhanced settings
     println!("\n2️⃣ Multi-Pass Extraction (Enhanced):");
-    let multipass_config = ExtractConfig {
+    let mut multipass_config = ExtractConfig {
         model_id: "mistral".to_string(),
         api_key: None,
         format_type: FormatType::Json,
-        max_char_buffer: 1000, // Smaller buffer to force chunking
         temperature: 0.1,
         fence_output: Some(true),
         use_schema_constraints: false,
-        batch_length: 1,
-        max_workers: 1,
+        debug: true,
+        model_url: Some("http://localhost:11434".to_string()),
+        
+        // Token-based chunking configuration (same as baseline for comparison)
+        max_char_buffer: 1000,  // Smaller buffer to force chunking and test multi-pass
+        batch_length: 2,        // Process chunks in small batches
+        max_workers: 2,         // Use 2 workers for local Ollama
+        
+        // Multi-pass settings
+        extraction_passes: 3,   // Multiple passes for better recall
+        enable_multipass: true, // Enable multi-pass processing
+        multipass_min_extractions: 2, // Re-process chunks with < 2 extractions
+        multipass_quality_threshold: 0.2, // Lower threshold for more inclusion
+        
         additional_context: Some("Please look for people, organizations, locations, dates, contact information, financial amounts, and research topics. Be thorough and check for entities that might be easy to miss.".to_string()),
         resolver_params: HashMap::new(),
         language_model_params: HashMap::new(),
-        debug: true,
-        model_url: Some("http://localhost:11434".to_string()),
-        extraction_passes: 3, // Multiple passes
-        enable_multipass: true, // Enable multi-pass
-        multipass_min_extractions: 2, // Re-process chunks with < 2 extractions
-        multipass_quality_threshold: 0.2, // Lower threshold for more inclusion
     };
+    
+    // Add Ollama provider configuration
+    multipass_config.language_model_params.insert(
+        "provider_config".to_string(),
+        serde_json::to_value(&provider_config)?,
+    );
 
     match extract(source_text, None, &examples, multipass_config).await {
         Ok(result) => {

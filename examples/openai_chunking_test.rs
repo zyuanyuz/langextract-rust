@@ -42,7 +42,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("   Word Count: ~{} words", large_text.split_whitespace().count());
     println!();
 
-    // Create extraction configuration for OpenAI with chunking
+    // Create extraction configuration for OpenAI with token-based chunking
     let config = ExtractConfig {
         model_id: "gpt-3.5-turbo".to_string(),  // More cost-effective than GPT-4
         api_key: None,  // Will load from .env file
@@ -52,23 +52,27 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         fence_output: Some(false),  // Let OpenAI return raw JSON
         debug: true,
         
-        // Chunking parameters
-        max_char_buffer: 600,  // Small buffer to force chunking
+        // Token-based chunking parameters optimized for OpenAI API
+        max_char_buffer: 600,  // Characters per chunk (respects sentence boundaries)
         batch_length: 2,       // Process 2 chunks in parallel (be gentle on API)
         max_workers: 2,        // Use 2 workers to avoid rate limits
-        extraction_passes: 1,
+        extraction_passes: 1,  // Single pass for cost efficiency
+        enable_multipass: false, // Disable multi-pass for this example
         
         ..Default::default()
     };
 
-    println!("⚙️  Configuration:");
+    println!("⚙️  Token-Based Chunking Configuration:");
     println!("   Model: {}", config.model_id);
-    println!("   Max chars per chunk: {}", config.max_char_buffer);
+    println!("   Max chars per buffer: {} (respects sentence boundaries)", config.max_char_buffer);
     println!("   Batch length: {}", config.batch_length);
     println!("   Max workers: {}", config.max_workers);
+    println!("   Multi-pass enabled: {}", config.enable_multipass);
     println!();
 
-    println!("🔄 Starting extraction with OpenAI and automatic chunking...");
+    println!("🔄 Starting extraction with OpenAI and token-based chunking...");
+    println!("   Using intelligent sentence boundary detection");
+    println!("   Chunks will respect linguistic structure");
 
     // Perform extraction with chunking
     match extract(
