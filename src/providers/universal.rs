@@ -9,6 +9,7 @@ use crate::{
 };
 use async_trait::async_trait;
 use std::collections::HashMap;
+use tokio::time::Duration;
 
 /// Universal language model provider
 pub struct UniversalProvider {
@@ -22,6 +23,50 @@ pub struct UniversalProvider {
 }
 
 impl UniversalProvider {
+    /// Retry helper function with exponential backoff
+    /// Retries at least 3 times with 30-second delays between attempts
+    pub async fn retry_with_backoff<T, F, Fut>(
+        &self,
+        mut operation: F,
+        operation_name: &str,
+    ) -> LangExtractResult<T>
+    where
+        F: FnMut() -> Fut,
+        Fut: std::future::Future<Output = LangExtractResult<T>>,
+    {
+        let max_retries = 3;
+        let base_delay = Duration::from_secs(30);
+
+        for attempt in 0..=max_retries {
+            match operation().await {
+                Ok(result) => return Ok(result),
+                Err(e) => {
+                    if attempt == max_retries {
+                        // Last attempt failed, return the error
+                        return Err(LangExtractError::inference_simple(
+                            format!("{} failed after {} attempts. Last error: {}", operation_name, max_retries + 1, e)
+                        ));
+                    }
+
+                    // Calculate delay with exponential backoff (30s, 60s, 90s)
+                    let delay = base_delay * (attempt + 1) as u32;
+                    println!("❌ {} failed (attempt {}/{}): {}", operation_name, attempt + 1, max_retries + 1, e);
+                    println!("⏳ Retrying in {} seconds...", delay.as_secs());
+
+                    // Add a small delay before the main sleep to ensure logs are printed
+                    tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+
+                    // Use tokio::time::sleep explicitly
+                    tokio::time::sleep(delay).await;
+
+                    println!("🔄 Retry delay completed, starting attempt {}", attempt + 2);
+                }
+            }
+        }
+
+        unreachable!("Should have returned from the loop")
+    }
+
     /// Create a new universal provider
     pub fn new(config: ProviderConfig) -> LangExtractResult<Self> {
         let client = reqwest::Client::new();
@@ -114,10 +159,23 @@ impl UniversalProvider {
                 }
             }
 
-            // Make the API call - using the correct async-openai API
-            let response = client.chat().create(request).await.map_err(|e| {
-                LangExtractError::inference_simple(format!("OpenAI API error: {}", e))
-            })?;
+            // Make the API call with retry logic
+            println!("🔄 Starting OpenAI API call with retry logic for batch size {}", prompt.len());
+            let response = self.retry_with_backoff(
+                || async {
+                    println!("📡 Making HTTP request to OpenAI...");
+                    let result = client.chat().create(request.clone()).await.map_err(|e| {
+                        println!("❌ OpenAI API request failed: {}", e);
+                        LangExtractError::inference_simple(format!("OpenAI API error: {}", e))
+                    });
+                    if result.is_ok() {
+                        println!("✅ OpenAI API request successful");
+                    }
+                    result
+                },
+                &format!("OpenAI API call for prompt batch {}", prompt.len())
+            ).await?;
+            println!("🎉 OpenAI retry logic completed successfully");
 
             // Extract the response content
             let content = response
@@ -176,28 +234,45 @@ impl UniversalProvider {
             }
 
             let url = format!("{}/api/generate", self.config.base_url);
-            
-            let mut request = self.client.post(&url).json(&request_body);
 
-            // Add headers
-            for (key, value) in &self.config.headers {
-                request = request.header(key, value);
-            }
+            // Make the API call with retry logic
+            println!("🔄 Starting Ollama API call with retry logic for batch size {}", prompt.len());
+            let response_body = self.retry_with_backoff(
+                || async {
+                    println!("📡 Making HTTP request to Ollama...");
+                    let mut request = self.client.post(&url).json(&request_body);
 
-            let response = request.send().await.map_err(|e| {
-                LangExtractError::NetworkError(e)
-            })?;
+                    // Add headers
+                    for (key, value) in &self.config.headers {
+                        request = request.header(key, value);
+                    }
 
-            if !response.status().is_success() {
-                return Err(LangExtractError::inference_simple(format!(
-                    "Ollama API error: HTTP {}",
-                    response.status()
-                )));
-            }
+                    let response = request.send().await.map_err(|e| {
+                        println!("❌ HTTP request failed: {}", e);
+                        LangExtractError::NetworkError(e)
+                    })?;
 
-            let response_body: serde_json::Value = response.json().await.map_err(|e| {
-                LangExtractError::parsing(format!("Failed to parse Ollama response: {}", e))
-            })?;
+                    if !response.status().is_success() {
+                        let status = response.status();
+                        println!("❌ HTTP error status: {}", status);
+                        return Err(LangExtractError::inference_simple(format!(
+                            "Ollama API error: HTTP {}",
+                            status
+                        )));
+                    }
+
+                    println!("✅ HTTP request successful, parsing response...");
+                    let response_body: serde_json::Value = response.json().await.map_err(|e| {
+                        println!("❌ JSON parsing failed: {}", e);
+                        LangExtractError::parsing(format!("Failed to parse Ollama response: {}", e))
+                    })?;
+
+                    println!("✅ Response parsed successfully");
+                    Ok(response_body)
+                },
+                &format!("Ollama API call for prompt batch {}", prompt.len())
+            ).await?;
+            println!("🎉 Ollama retry logic completed successfully");
 
             let content = response_body
                 .get("response")
@@ -277,5 +352,65 @@ impl BaseLanguageModel for UniversalProvider {
             ProviderType::Ollama => "ollama",
             ProviderType::Custom => "custom",
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::providers::config::ProviderConfig;
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    use std::sync::Arc;
+
+    #[tokio::test]
+    async fn test_retry_with_backoff_success_after_failures() {
+        let config = ProviderConfig::ollama("test-model", None);
+        let provider = UniversalProvider::new(config).unwrap();
+
+        let attempt_count = Arc::new(AtomicUsize::new(0));
+        let attempt_count_clone = attempt_count.clone();
+
+        let result = provider.retry_with_backoff(
+            move || {
+                let attempt_count = attempt_count_clone.clone();
+                async move {
+                    let current = attempt_count.fetch_add(1, Ordering::SeqCst);
+                    if current < 2 {
+                        Err::<String, _>(LangExtractError::inference_simple(format!("Attempt {} failed", current + 1)))
+                    } else {
+                        Ok("Success!".to_string())
+                    }
+                }
+            },
+            "Test operation"
+        ).await;
+
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), "Success!");
+        assert_eq!(attempt_count.load(Ordering::SeqCst), 3);
+    }
+
+    #[tokio::test]
+    async fn test_retry_with_backoff_immediate_success() {
+        let config = ProviderConfig::ollama("test-model", None);
+        let provider = UniversalProvider::new(config).unwrap();
+
+        let attempt_count = Arc::new(AtomicUsize::new(0));
+        let attempt_count_clone = attempt_count.clone();
+
+        let result = provider.retry_with_backoff(
+            move || {
+                let attempt_count = attempt_count_clone.clone();
+                async move {
+                    attempt_count.fetch_add(1, Ordering::SeqCst);
+                    Ok("Immediate success!".to_string())
+                }
+            },
+            "Test operation"
+        ).await;
+
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), "Immediate success!");
+        assert_eq!(attempt_count.load(Ordering::SeqCst), 1);
     }
 }

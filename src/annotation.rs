@@ -2,7 +2,7 @@
 
 use crate::{
     alignment::TextAligner,
-    chunking::{ChunkResult, ChunkingConfig, ResultAggregator, TextChunk, TextChunker, TokenChunk, ChunkIterator},
+    chunking::{ChunkResult, ResultAggregator, TextChunk, TokenChunk, ChunkIterator},
     data::{AnnotatedDocument, Extraction, FormatType, Document},
     exceptions::LangExtractResult,
     inference::BaseLanguageModel,
@@ -330,49 +330,7 @@ impl Annotator {
         Ok(final_result)
     }
 
-    /// Process text with chunking using character-based strategy (legacy)
-    async fn process_chunked_text(
-        &self,
-        text: &str,
-        resolver: &Resolver,
-        max_char_buffer: usize,
-        batch_length: usize,
-        additional_context: Option<&str>,
-        debug: bool,
-        extraction_passes: usize,
-        max_workers: usize,
-    ) -> LangExtractResult<AnnotatedDocument> {
-        // Create chunker with appropriate configuration
-        let chunking_config = ChunkingConfig {
-            max_chunk_size: max_char_buffer,
-            overlap_size: max_char_buffer / 10, // 10% overlap
-            ..Default::default()
-        };
-        let chunker = TextChunker::with_config(chunking_config);
 
-        // Chunk the text
-        let chunks = chunker.chunk_text(text, None)?;
-        
-        // Always show chunking progress for user feedback
-        println!("📄 Processing document with {} legacy chunks ({} chars total)", chunks.len(), text.len());
-        if debug {
-            for (i, chunk) in chunks.iter().enumerate() {
-                println!("   Legacy Chunk {}: {} chars (offset: {})", i, chunk.char_length, chunk.char_offset);
-            }
-        }
-
-        // Process chunks using common batch processing logic
-        self.process_text_chunks_in_batches(
-            chunks,
-            text,
-            resolver,
-            batch_length,
-            additional_context,
-            debug,
-            extraction_passes,
-            max_workers,
-        ).await
-    }
 
     /// Process a single chunk
     async fn process_chunk(

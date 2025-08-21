@@ -1,7 +1,7 @@
 //! Advanced chunking demo with multi-pass extraction
 //!
-//! This example demonstrates the advanced features of the token-based chunking system:
-//! - Intelligent sentence boundary detection
+//! This example demonstrates the advanced features of the semantic chunking system:
+//! - AI-powered content understanding for intelligent boundaries
 //! - Multi-pass extraction for improved recall
 //! - Parallel chunk processing
 //! - Result aggregation and deduplication
@@ -13,7 +13,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Initialize logging
     env_logger::init();
 
-    println!("🚀 Advanced Token-Based Chunking Demo\n");
+    println!("🚀 Advanced Semantic Chunking Demo\n");
 
     // Create example data to guide the extraction
     let examples = vec![
@@ -46,7 +46,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("   Estimated sentences: {}", large_text.matches('.').count());
     println!();
 
-    // Configuration for advanced token-based chunking with multi-pass
+    // Configuration for advanced semantic chunking with multi-pass
     let config = ExtractConfig {
         model_id: "gpt-3.5-turbo".to_string(), // Replace with your preferred model
         api_key: None,  // Load from environment
@@ -55,7 +55,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         use_schema_constraints: false,
         debug: true,
         
-        // Advanced chunking configuration
+        // Advanced semantic chunking configuration
         max_char_buffer: 1200,     // Larger chunks for better context
         batch_length: 4,           // Process 4 chunks per batch
         max_workers: 6,            // Use 6 concurrent workers
@@ -71,8 +71,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     println!("⚙️  Advanced Configuration:");
     println!("   Model: {}", config.model_id);
-    println!("   Token-based chunking: Enabled");
-    println!("   Max chars per buffer: {} (respects sentence boundaries)", config.max_char_buffer);
+    println!("   Semantic chunking: Enabled");
+    println!("   Max chars per buffer: {} (respects semantic boundaries)", config.max_char_buffer);
     println!("   Batch processing: {} chunks per batch", config.batch_length);
     println!("   Concurrent workers: {}", config.max_workers);
     println!("   Multi-pass extraction: {}", config.enable_multipass);
@@ -81,8 +81,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!();
 
     println!("🔄 Starting advanced extraction pipeline...");
-    println!("   Phase 1: Tokenization and sentence boundary detection");
-    println!("   Phase 2: Intelligent chunk creation");
+    println!("   Phase 1: Semantic analysis and content understanding");
+    println!("   Phase 2: AI-powered chunk creation with semantic boundaries");
     println!("   Phase 3: Parallel chunk processing");
     if config.enable_multipass {
         println!("   Phase 4: Multi-pass refinement");

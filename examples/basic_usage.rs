@@ -39,8 +39,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         temperature: 0.3,  // Lower temperature for more consistent results
         debug: true,
         
-        // Token-based chunking configuration (text is small, but shows options)
-        max_char_buffer: 1000,  // Characters per chunk (respects sentence boundaries)
+        // Semantic chunking configuration (text is small, but shows options)
+        max_char_buffer: 1000,  // Characters per chunk (respects semantic boundaries)
         batch_length: 10,       // Chunks processed in parallel
         max_workers: 4,         // Concurrent workers
         extraction_passes: 1,   // Single extraction pass

@@ -47,6 +47,10 @@ pub enum LangExtractError {
     #[error("Serialization error: {0}")]
     SerializationError(String),
 
+    /// Text processing errors (chunking, alignment, etc.)
+    #[error("Processing error: {0}")]
+    ProcessingError(String),
+
     /// Tokenization errors
     #[error("Tokenization error: {0}")]
     TokenizationError(String),
@@ -105,6 +109,11 @@ impl LangExtractError {
     /// Create a new serialization error
     pub fn serialization<S: Into<String>>(message: S) -> Self {
         Self::SerializationError(message.into())
+    }
+
+    /// Create a new processing error
+    pub fn processing<S: Into<String>>(message: S) -> Self {
+        Self::ProcessingError(message.into())
     }
 
     /// Create a new tokenization error

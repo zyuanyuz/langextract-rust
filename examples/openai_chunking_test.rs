@@ -1,7 +1,7 @@
 //! Test OpenAI provider with chunking for large documents
 //!
 //! This example demonstrates how the OpenAI provider handles large documents
-//! using automatic chunking and parallel processing.
+//! using semantic chunking and parallel processing.
 
 use langextract_rust::{extract, ExampleData, Extraction, ExtractConfig, FormatType};
 
@@ -42,7 +42,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("   Word Count: ~{} words", large_text.split_whitespace().count());
     println!();
 
-    // Create extraction configuration for OpenAI with token-based chunking
+    // Create extraction configuration for OpenAI with semantic chunking
     let config = ExtractConfig {
         model_id: "gpt-3.5-turbo".to_string(),  // More cost-effective than GPT-4
         api_key: None,  // Will load from .env file
@@ -51,9 +51,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         use_schema_constraints: false,  // Disable for simplicity
         fence_output: Some(false),  // Let OpenAI return raw JSON
         debug: true,
-        
-        // Token-based chunking parameters optimized for OpenAI API
-        max_char_buffer: 600,  // Characters per chunk (respects sentence boundaries)
+
+        // Semantic chunking parameters optimized for OpenAI API
+        max_char_buffer: 600,  // Characters per chunk (respects semantic boundaries)
         batch_length: 2,       // Process 2 chunks in parallel (be gentle on API)
         max_workers: 2,        // Use 2 workers to avoid rate limits
         extraction_passes: 1,  // Single pass for cost efficiency
@@ -62,17 +62,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         ..Default::default()
     };
 
-    println!("⚙️  Token-Based Chunking Configuration:");
+    println!("⚙️  Semantic Chunking Configuration:");
     println!("   Model: {}", config.model_id);
-    println!("   Max chars per buffer: {} (respects sentence boundaries)", config.max_char_buffer);
+    println!("   Max chars per buffer: {} (respects semantic boundaries)", config.max_char_buffer);
     println!("   Batch length: {}", config.batch_length);
     println!("   Max workers: {}", config.max_workers);
     println!("   Multi-pass enabled: {}", config.enable_multipass);
     println!();
 
-    println!("🔄 Starting extraction with OpenAI and token-based chunking...");
-    println!("   Using intelligent sentence boundary detection");
-    println!("   Chunks will respect linguistic structure");
+    println!("🔄 Starting extraction with OpenAI and semantic chunking...");
+    println!("   Using AI-powered content understanding");
+    println!("   Chunks will respect semantic structure");
 
     // Perform extraction with chunking
     match extract(

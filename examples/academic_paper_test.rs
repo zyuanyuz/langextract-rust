@@ -7,76 +7,85 @@ use langextract_rust::{
 use std::env;
 use tokio;
 
-// Academic paper examples to guide the model in extracting research-related information
+// Academic paper examples specifically tailored for the LLM-assisted planning paper
 fn create_academic_examples() -> Vec<ExampleData> {
     vec![
         ExampleData::new(
-            "The paper 'Attention Is All You Need' by Vaswani et al. (2017) introduced the Transformer architecture. arXiv:1706.03762 [cs.CL]. The model achieved a BLEU score of 28.4 on WMT 2014 English-to-German translation.".to_string(),
+            "Inspire or Predict? Exploring New Paradigms in Assisting Classical Planners with Large Language Models by Wenkai Yu, Jianhang Tang, Yang Zhang, Shanjiang Tang, Kebing Jin, Hankz Hankui Zhuo. arXiv:2508.11524v1 [cs.AI] 15 Aug 2025.".to_string(),
             vec![
-                Extraction::new("title".to_string(), "Attention Is All You Need".to_string()),
-                Extraction::new("author".to_string(), "Vaswani et al.".to_string()),
-                Extraction::new("year".to_string(), "2017".to_string()),
-                Extraction::new("arxiv_id".to_string(), "arXiv:1706.03762".to_string()),
-                Extraction::new("category".to_string(), "cs.CL".to_string()),
-                Extraction::new("metric".to_string(), "BLEU score".to_string()),
-                Extraction::new("score".to_string(), "28.4".to_string()),
-                Extraction::new("dataset".to_string(), "WMT 2014 English-to-German".to_string()),
-                Extraction::new("contribution".to_string(), "Transformer architecture".to_string()),
+                Extraction::new("paper_title".to_string(), "Inspire or Predict? Exploring New Paradigms in Assisting Classical Planners with Large Language Models".to_string()),
+                Extraction::new("author".to_string(), "Wenkai Yu".to_string()),
+                Extraction::new("author".to_string(), "Jianhang Tang".to_string()),
+                Extraction::new("author".to_string(), "Yang Zhang".to_string()),
+                Extraction::new("author".to_string(), "Shanjiang Tang".to_string()),
+                Extraction::new("author".to_string(), "Kebing Jin".to_string()),
+                Extraction::new("author".to_string(), "Hankz Hankui Zhuo".to_string()),
+                Extraction::new("arxiv_id".to_string(), "arXiv:2508.11524v1".to_string()),
+                Extraction::new("category".to_string(), "cs.AI".to_string()),
+                Extraction::new("publication_date".to_string(), "15 Aug 2025".to_string()),
+                Extraction::new("research_domain".to_string(), "Classical Planning".to_string()),
+                Extraction::new("research_domain".to_string(), "Large Language Models".to_string()),
             ],
         ),
         ExampleData::new(
-            "Abstract: Recent advances in deep learning have shown remarkable success in computer vision tasks. This work proposes a novel convolutional neural network (CNN) architecture that achieves 95.2% accuracy on ImageNet classification. The method is evaluated on CIFAR-10 and CIFAR-100 datasets.".to_string(),
+            "This paper proposes two novel paradigms: LLM4Inspire and LLM4Predict, for integrating LLMs into classical planning frameworks. LLM4Inspire uses LLMs to provide heuristic guidance, while LLM4Predict employs domain-specific knowledge to predict intermediate states.".to_string(),
             vec![
-                Extraction::new("section".to_string(), "Abstract".to_string()),
-                Extraction::new("domain".to_string(), "computer vision".to_string()),
-                Extraction::new("method".to_string(), "convolutional neural network".to_string()),
-                Extraction::new("architecture".to_string(), "CNN".to_string()),
-                Extraction::new("accuracy".to_string(), "95.2%".to_string()),
-                Extraction::new("dataset".to_string(), "ImageNet".to_string()),
-                Extraction::new("task".to_string(), "classification".to_string()),
-                Extraction::new("evaluation_dataset".to_string(), "CIFAR-10".to_string()),
-                Extraction::new("evaluation_dataset".to_string(), "CIFAR-100".to_string()),
+                Extraction::new("proposed_method".to_string(), "LLM4Inspire".to_string()),
+                Extraction::new("proposed_method".to_string(), "LLM4Predict".to_string()),
+                Extraction::new("method_description".to_string(), "LLM4Inspire uses LLMs to provide heuristic guidance".to_string()),
+                Extraction::new("method_description".to_string(), "LLM4Predict employs domain-specific knowledge to predict intermediate states".to_string()),
+                Extraction::new("integration_type".to_string(), "heuristic guidance".to_string()),
+                Extraction::new("integration_type".to_string(), "domain-specific knowledge".to_string()),
+                Extraction::new("integration_type".to_string(), "intermediate state prediction".to_string()),
             ],
         ),
         ExampleData::new(
-            "License: CC BY-NC-SA 4.0. The research was conducted at MIT Computer Science and Artificial Intelligence Laboratory (CSAIL). Contact: john.doe@mit.edu. Funding provided by NSF Grant #1234567.".to_string(),
+            "The experiments evaluate performance across four domains: Blocks (50 instances), Logistics (42 instances), Depot (22 instances), and Mystery Round 1 (30 instances). LLM4Predict shows superior performance with 95%+ success rates on Blocks, Logistics, and Depot domains.".to_string(),
             vec![
-                Extraction::new("license".to_string(), "CC BY-NC-SA 4.0".to_string()),
-                Extraction::new("institution".to_string(), "MIT Computer Science and Artificial Intelligence Laboratory".to_string()),
-                Extraction::new("institution_abbreviation".to_string(), "CSAIL".to_string()),
-                Extraction::new("email".to_string(), "john.doe@mit.edu".to_string()),
-                Extraction::new("funding_source".to_string(), "NSF".to_string()),
-                Extraction::new("grant_number".to_string(), "#1234567".to_string()),
+                Extraction::new("domain".to_string(), "Blocks".to_string()),
+                Extraction::new("domain".to_string(), "Logistics".to_string()),
+                Extraction::new("domain".to_string(), "Depot".to_string()),
+                Extraction::new("domain".to_string(), "Mystery Round 1".to_string()),
+                Extraction::new("domain_instances".to_string(), "Blocks: 50 instances".to_string()),
+                Extraction::new("domain_instances".to_string(), "Logistics: 42 instances".to_string()),
+                Extraction::new("domain_instances".to_string(), "Depot: 22 instances".to_string()),
+                Extraction::new("domain_instances".to_string(), "Mystery Round 1: 30 instances".to_string()),
+                Extraction::new("success_rate".to_string(), "95%+".to_string()),
+                Extraction::new("best_method".to_string(), "LLM4Predict".to_string()),
             ],
         ),
         ExampleData::new(
-            "Related Work: Previous approaches [12, 25, 34] have addressed this problem using traditional machine learning methods. However, recent work by Zhang et al. [45] demonstrated significant improvements using transformer-based models. The baseline method achieved F1-score of 0.82 while our approach reaches 0.91.".to_string(),
+            "The paper compares LLM4Predict against Fast Downward, DeepSeek-R1, and LLM4Inspire baselines. Results show LLM4Predict achieves 49/50 success rate on Blocks domain, 42/42 on Logistics, and 19/22 on Depot, significantly outperforming other methods.".to_string(),
             vec![
-                Extraction::new("section".to_string(), "Related Work".to_string()),
-                Extraction::new("citation".to_string(), "[12, 25, 34]".to_string()),
-                Extraction::new("method_type".to_string(), "traditional machine learning".to_string()),
-                Extraction::new("recent_author".to_string(), "Zhang et al.".to_string()),
-                Extraction::new("recent_citation".to_string(), "[45]".to_string()),
-                Extraction::new("recent_method".to_string(), "transformer-based models".to_string()),
-                Extraction::new("baseline_metric".to_string(), "F1-score".to_string()),
-                Extraction::new("baseline_score".to_string(), "0.82".to_string()),
-                Extraction::new("our_score".to_string(), "0.91".to_string()),
+                Extraction::new("baseline_method".to_string(), "Fast Downward".to_string()),
+                Extraction::new("baseline_method".to_string(), "DeepSeek-R1".to_string()),
+                Extraction::new("baseline_method".to_string(), "LLM4Inspire".to_string()),
+                Extraction::new("target_method".to_string(), "LLM4Predict".to_string()),
+                Extraction::new("blocks_success".to_string(), "49/50".to_string()),
+                Extraction::new("logistics_success".to_string(), "42/42".to_string()),
+                Extraction::new("depot_success".to_string(), "19/22".to_string()),
+                Extraction::new("performance_comparison".to_string(), "significantly outperforms other methods".to_string()),
             ],
         ),
         ExampleData::new(
-            "Table 1: Performance comparison on benchmark datasets. Our method (Ours) vs Baseline shows improvements of 12.3% on COCO, 8.7% on Pascal VOC, and 15.1% on Open Images. Statistical significance tested with p < 0.05.".to_string(),
+            "Key findings: LLM4Predict requires fewer LLM calls and less solver time compared to LLM4Inspire. The approach demonstrates that domain-specific constraints are crucial for effective LLM integration in planning tasks.".to_string(),
             vec![
-                Extraction::new("table_reference".to_string(), "Table 1".to_string()),
-                Extraction::new("comparison_type".to_string(), "Performance comparison".to_string()),
-                Extraction::new("method_name".to_string(), "Ours".to_string()),
-                Extraction::new("baseline".to_string(), "Baseline".to_string()),
-                Extraction::new("improvement".to_string(), "12.3%".to_string()),
-                Extraction::new("dataset".to_string(), "COCO".to_string()),
-                Extraction::new("improvement".to_string(), "8.7%".to_string()),
-                Extraction::new("dataset".to_string(), "Pascal VOC".to_string()),
-                Extraction::new("improvement".to_string(), "15.1%".to_string()),
-                Extraction::new("dataset".to_string(), "Open Images".to_string()),
-                Extraction::new("statistical_test".to_string(), "p < 0.05".to_string()),
+                Extraction::new("key_finding".to_string(), "LLM4Predict requires fewer LLM calls than LLM4Inspire".to_string()),
+                Extraction::new("key_finding".to_string(), "LLM4Predict requires less solver time than LLM4Inspire".to_string()),
+                Extraction::new("key_finding".to_string(), "Domain-specific constraints are crucial for effective LLM integration".to_string()),
+                Extraction::new("efficiency_metric".to_string(), "fewer LLM calls".to_string()),
+                Extraction::new("efficiency_metric".to_string(), "less solver time".to_string()),
+                Extraction::new("conclusion".to_string(), "Domain-specific constraints are crucial for effective LLM integration in planning tasks".to_string()),
+            ],
+        ),
+        ExampleData::new(
+            "Technical details: The system uses problem decomposition with directed acyclic dependency graphs (DADGs) to divide large planning problems into subproblems. Each subproblem is solved using existing planners like Fast Downward.".to_string(),
+            vec![
+                Extraction::new("technical_approach".to_string(), "problem decomposition".to_string()),
+                Extraction::new("technical_approach".to_string(), "directed acyclic dependency graphs".to_string()),
+                Extraction::new("technical_component".to_string(), "DADGs".to_string()),
+                Extraction::new("solver_used".to_string(), "Fast Downward".to_string()),
+                Extraction::new("decomposition_method".to_string(), "divide large planning problems into subproblems".to_string()),
             ],
         ),
     ]
@@ -122,7 +131,7 @@ async fn test_academic_extraction(provider_config: ProviderConfig, provider_name
         multipass_min_extractions: 5,
         multipass_quality_threshold: 0.8,
         
-        additional_context: Some("Extract detailed academic and research information including authors, institutions, citations, methodologies, datasets, metrics, scores, technical terms, and research contributions from this academic paper. Focus on identifying specific names, numbers, references, and technical concepts.".to_string()),
+        additional_context: Some("Extract specific information from this LLM-assisted planning research paper. Focus on: paper title, all authors, arXiv ID, publication date, research domains, proposed methods (LLM4Inspire, LLM4Predict), method descriptions, evaluation domains (Blocks, Logistics, Depot, Mystery), instance counts, success rates, baseline methods (Fast Downward, DeepSeek-R1), performance comparisons, key findings, efficiency metrics, technical approaches, and conclusions.".to_string()),
         resolver_params: std::collections::HashMap::new(),
         language_model_params: std::collections::HashMap::new(),
     };
@@ -146,7 +155,7 @@ async fn test_academic_extraction(provider_config: ProviderConfig, provider_name
     
     match extract(
         &paper_text,
-        Some("Extract comprehensive academic information from this research paper"),
+        Some("Extract specific details from this LLM-assisted planning paper: title, authors, arXiv info, methods (LLM4Inspire/LLM4Predict), experimental results, performance metrics, domains tested (Blocks/Logistics/Depot/Mystery), success rates, and key findings"),
         &examples,
         extract_config,
     ).await {
@@ -172,72 +181,101 @@ async fn test_academic_extraction(provider_config: ProviderConfig, provider_name
                     println!("   • {}: {} items", category, count);
                 }
 
-                // Show sample extractions by category
+                // Show sample extractions by category (LLM planning specific)
                 println!("\n🔍 Sample Extractions by Category:");
                 let mut shown_categories = std::collections::HashSet::new();
-                
+
                 for extraction in extractions.iter() {
-                    if !shown_categories.contains(&extraction.extraction_class) && shown_categories.len() < 12 {
+                    if !shown_categories.contains(&extraction.extraction_class) && shown_categories.len() < 15 {
                         println!("   [{}] {}", extraction.extraction_class, extraction.extraction_text);
                         shown_categories.insert(extraction.extraction_class.clone());
                     }
                 }
-                
+
                 if shown_categories.len() < category_counts.len() {
                     println!("   ... and {} more categories", category_counts.len() - shown_categories.len());
                 }
 
-                // Academic-specific analysis
-                println!("\n👥 Author & Citation Analysis:");
+                // LLM Planning paper-specific analysis
+                println!("\n👥 Author Analysis:");
                 let authors: Vec<_> = extractions.iter()
-                    .filter(|e| e.extraction_class.contains("author") || e.extraction_class.contains("researcher"))
+                    .filter(|e| e.extraction_class == "author")
                     .collect();
-                println!("   Found {} author/researcher mentions", authors.len());
+                println!("   Found {} authors: {:?}", authors.len(), authors.iter().map(|e| &e.extraction_text).collect::<Vec<_>>());
 
-                let citations: Vec<_> = extractions.iter()
-                    .filter(|e| e.extraction_class.contains("citation") || e.extraction_class.contains("reference") || e.extraction_class.contains("arxiv"))
-                    .collect();
-                println!("   Found {} citations/references", citations.len());
-
-                println!("\n🔬 Research Content Analysis:");
+                println!("\n📋 Method Analysis:");
                 let methods: Vec<_> = extractions.iter()
-                    .filter(|e| e.extraction_class.contains("method") || e.extraction_class.contains("algorithm") || e.extraction_class.contains("approach"))
+                    .filter(|e| e.extraction_class == "proposed_method")
                     .collect();
-                println!("   Found {} methodology references", methods.len());
+                println!("   Found {} proposed methods: {:?}", methods.len(), methods.iter().map(|e| &e.extraction_text).collect::<Vec<_>>());
 
-                let datasets: Vec<_> = extractions.iter()
-                    .filter(|e| e.extraction_class.contains("dataset") || e.extraction_class.contains("benchmark"))
+                let descriptions: Vec<_> = extractions.iter()
+                    .filter(|e| e.extraction_class == "method_description")
                     .collect();
-                println!("   Found {} dataset/benchmark mentions", datasets.len());
+                if !descriptions.is_empty() {
+                    println!("   Method descriptions:");
+                    for desc in descriptions.iter().take(3) {
+                        println!("     • {}", desc.extraction_text);
+                    }
+                }
 
-                let metrics: Vec<_> = extractions.iter()
-                    .filter(|e| e.extraction_class.contains("metric") || e.extraction_class.contains("score") || e.extraction_class.contains("accuracy") || e.extraction_class.contains("performance"))
+                println!("\n🏆 Performance Analysis:");
+                let success_rates: Vec<_> = extractions.iter()
+                    .filter(|e| e.extraction_class == "success_rate")
                     .collect();
-                println!("   Found {} performance metrics", metrics.len());
+                if !success_rates.is_empty() {
+                    println!("   Success rates: {:?}", success_rates.iter().map(|e| &e.extraction_text).collect::<Vec<_>>());
+                }
+
+                let domains: Vec<_> = extractions.iter()
+                    .filter(|e| e.extraction_class == "domain")
+                    .collect();
+                if !domains.is_empty() {
+                    println!("   Test domains: {:?}", domains.iter().map(|e| &e.extraction_text).collect::<Vec<_>>());
+                }
+
+                println!("\n📊 Comparison Analysis:");
+                let baselines: Vec<_> = extractions.iter()
+                    .filter(|e| e.extraction_class == "baseline_method")
+                    .collect();
+                if !baselines.is_empty() {
+                    println!("   Baseline methods: {:?}", baselines.iter().map(|e| &e.extraction_text).collect::<Vec<_>>());
+                }
+
+                let findings: Vec<_> = extractions.iter()
+                    .filter(|e| e.extraction_class == "key_finding")
+                    .collect();
+                if !findings.is_empty() {
+                    println!("   Key findings:");
+                    for finding in findings.iter().take(5) {
+                        println!("     • {}", finding.extraction_text);
+                    }
+                }
             }
 
-            // Generate academic-focused reports
+            // Generate LLM planning-focused reports
             let timestamp = chrono::Utc::now().format("%Y%m%d_%H%M%S");
-            let base_filename = format!("academic_paper_{}_{}", provider_name.to_lowercase().replace(" ", "_"), timestamp);
+            let base_filename = format!("llm_planning_paper_{}_{}", provider_name.to_lowercase().replace(" ", "_"), timestamp);
 
-            // Generate HTML report with academic focus
+            // Generate HTML report with LLM planning focus
             let html_config = ExportConfig {
                 format: ExportFormat::Html,
-                title: Some(format!("Academic Paper Analysis - {} ({} extractions)", provider_name, extraction_count)),
+                title: Some(format!("LLM Planning Paper Analysis - {} ({} extractions)", provider_name, extraction_count)),
                 highlight_extractions: true,
                 show_char_intervals: false, // Skip intervals for cleaner academic view
                 include_statistics: true,
                 custom_css: Some(r#"
                     .author-highlight { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
-                    .citation-highlight { background: #f59e0b; color: white; }
-                    .method-highlight { background: #10b981; color: white; }
-                    .dataset-highlight { background: #3b82f6; color: white; }
-                    .metric-highlight { background: #8b5cf6; color: white; }
-                    .institution-highlight { background: #ef4444; color: white; }
-                    .extraction-class { 
-                        font-size: 0.85em; 
-                        text-transform: capitalize; 
-                        letter-spacing: 0.3px; 
+                    .paper_title-highlight { background: #f59e0b; color: white; font-weight: bold; }
+                    .proposed_method-highlight { background: #10b981; color: white; }
+                    .domain-highlight { background: #3b82f6; color: white; }
+                    .success_rate-highlight { background: #8b5cf6; color: white; }
+                    .key_finding-highlight { background: #ef4444; color: white; }
+                    .baseline_method-highlight { background: #f97316; color: white; }
+                    .extraction-class {
+                        font-size: 0.85em;
+                        text-transform: capitalize;
+                        letter-spacing: 0.3px;
                     }
                 "#.to_string()),
                 ..Default::default()
@@ -277,12 +315,13 @@ async fn test_academic_extraction(provider_config: ProviderConfig, provider_name
                 println!("📊 Research data CSV: {}", csv_file);
             }
 
-            println!("\n🎉 Academic paper analysis complete!");
-            println!("💡 Tips:");
-            println!("   • Open the .html file to see highlighted academic content in context");
-            println!("   • Use the .csv file for academic data analysis and categorization");
-            println!("   • Check the .json file for programmatic research data processing");
-            println!("   • Look for author networks, citation patterns, and methodology trends");
+            println!("\n🎉 LLM Planning paper analysis complete!");
+            println!("💡 Analysis Focus:");
+            println!("   • Open the .html file to see highlighted paper content with LLM planning focus");
+            println!("   • Use the .csv file for structured analysis of methods, domains, and performance");
+            println!("   • Check the .json file for programmatic processing of research findings");
+            println!("   • Key insights: LLM4Predict vs LLM4Inspire comparison, domain-specific constraints");
+            println!("   • Performance metrics: Success rates across Blocks, Logistics, Depot, Mystery domains");
 
         }
         Err(e) => {
@@ -324,14 +363,14 @@ async fn create_provider_config() -> Option<(ProviderConfig, String)> {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    println!("📚 LangExtract Academic Paper Extraction Test");
-    println!("🎯 Specialized test for extracting research information from academic papers");
-    println!("{}", "=".repeat(80));
+    println!("🤖 LangExtract LLM Planning Paper Extraction Test");
+    println!("🎯 Specialized test for extracting research information from the LLM-assisted planning paper");
+    println!("{}", "=".repeat(90));
 
     // Check if the academic paper file exists
     if !std::path::Path::new("examples/system_design.txt").exists() {
         println!("❌ Error: examples/system_design.txt not found!");
-        println!("   Please ensure the academic paper file is in the examples directory.");
+        println!("   Please ensure the LLM planning paper file is in the examples directory.");
         return Ok(());
     }
 
@@ -346,14 +385,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!("\nTo run this test, please configure a provider:");
         println!("  • OpenAI: export OPENAI_API_KEY=your_openai_key");
         println!("  • Ollama: ollama serve && ollama pull mistral");
-        println!("\nThis test is optimized for:");
-        println!("  📝 Academic paper titles and abstracts");
-        println!("  👥 Author names and institutional affiliations");
-        println!("  📚 Citations and reference information");
-        println!("  🔬 Research methodologies and approaches");
-        println!("  📊 Performance metrics and experimental results");
-        println!("  🗃️ Dataset and benchmark mentions");
-        println!("  🏷️ Technical terms and domain-specific vocabulary");
+        println!("\nThis test is optimized for the LLM-assisted planning paper and extracts:");
+        println!("  📝 Paper title, authors, arXiv ID, publication date");
+        println!("  🤖 Proposed methods (LLM4Inspire, LLM4Predict)");
+        println!("  🧪 Experimental domains (Blocks, Logistics, Depot, Mystery)");
+        println!("  📊 Success rates, performance comparisons, baseline methods");
+        println!("  🔬 Key findings, technical approaches, efficiency metrics");
+        println!("  📋 Method descriptions and research conclusions");
     }
 
     Ok(())
