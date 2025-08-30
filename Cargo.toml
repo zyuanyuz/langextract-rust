@@ -1,6 +1,6 @@
 [package]
 name = "langextract-rust"
-version = "0.4.1"
+version = "0.4.2"
 edition = "2021"
 description = "A Rust library for extracting structured and grounded information from text using LLMs"
 license = "Apache-2.0"
