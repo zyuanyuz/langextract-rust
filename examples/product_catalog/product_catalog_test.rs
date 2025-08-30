@@ -80,7 +80,7 @@ async fn test_product_extraction(provider_config: ProviderConfig, provider_name:
     println!("{}", "=".repeat(50));
 
     // Read the product catalog file
-    let product_text = std::fs::read_to_string("sample_product_text.txt")?;
+    let product_text = std::fs::read_to_string("examples/product_catalog/sample_product_text.txt")?;
     println!("📄 Loaded product catalog: {} characters", product_text.len());
 
     let extract_config = ExtractConfig {
@@ -106,6 +106,7 @@ async fn test_product_extraction(provider_config: ProviderConfig, provider_name:
         enable_multipass: false,
         multipass_min_extractions: 5,
         multipass_quality_threshold: 0.8,
+        progress_handler: None,
     };
 
     let examples = create_product_examples();
@@ -280,9 +281,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("{}", "=".repeat(60));
 
     // Check if the product file exists
-    if !std::path::Path::new("sample_product_text.txt").exists() {
+    if !std::path::Path::new("examples/product_catalog/sample_product_text.txt").exists() {
         println!("❌ Error: sample_product_text.txt not found!");
-        println!("   Please ensure the product catalog file is in the current directory.");
+        println!("   Please ensure the product catalog file is in the examples/product_catalog/ directory.");
         return Ok(());
     }
 

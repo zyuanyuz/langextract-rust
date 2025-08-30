@@ -52,8 +52,9 @@ echo ""
 echo "🔧 Building and running end-to-end test..."
 echo ""
 
-# Run the test
-cargo run --example e2e_provider_test
+# Run the basic usage test with available providers
+echo "Testing with basic usage example..."
+cargo run --example basic_usage
 
 echo ""
 echo "🎉 Test completed!"

@@ -1,7 +1,6 @@
 use langextract_rust::{
     data::{ExampleData, Extraction, FormatType},
     extract, ExtractConfig,
-    resolver::{ValidationConfig, ValidationResult},
     visualization::visualize,
 };
 use std::collections::HashMap;
@@ -72,6 +71,7 @@ You can contact him at m.chen@stanford.edu.
         enable_multipass: false,
         multipass_min_extractions: 1,
         multipass_quality_threshold: 0.3,
+        progress_handler: None,
     };
 
     match extract(source_text, None, &examples, basic_config).await {

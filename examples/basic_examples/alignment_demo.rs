@@ -1,7 +1,6 @@
 use langextract_rust::{
-    data::{Document, FormatType, ExampleData, Extraction},
+    data::{FormatType, ExampleData, Extraction},
     extract, ExtractConfig,
-    providers::{ProviderConfig, ProviderType},
     alignment::TextAligner,
     visualization::visualize,
 };
@@ -66,6 +65,7 @@ His colleague, Sarah Johnson, works in the marketing department and can be conta
         enable_multipass: false,
         multipass_min_extractions: 1,
         multipass_quality_threshold: 0.3,
+        progress_handler: None,
     };
 
     println!("🔮 Extracting entities with character alignment...\n");
@@ -134,7 +134,7 @@ His colleague, Sarah Johnson, works in the marketing department and can be conta
             // Show visualization
             println!("🎨 Text Visualization:");
             println!("=====================");
-            visualize(&result, true);
+            let _ = visualize(&result, true);
         },
         Err(e) => {
             eprintln!("❌ Error during extraction: {}", e);

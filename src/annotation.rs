@@ -6,6 +6,7 @@ use crate::{
     data::{AnnotatedDocument, Extraction, FormatType, Document},
     exceptions::LangExtractResult,
     inference::BaseLanguageModel,
+    logging::{report_progress, ProgressEvent},
     prompting::PromptTemplateStructured,
     resolver::Resolver,
     tokenizer::Tokenizer,
@@ -60,8 +61,11 @@ impl Annotator {
 
         // Text is too large, use token-based chunking
         if debug {
-            println!("🔧 DEBUG: Text length ({} chars) exceeds buffer limit ({} chars), using token-based chunking", 
-                text.len(), max_char_buffer);
+            report_progress(ProgressEvent::Debug {
+                operation: "chunking".to_string(),
+                details: format!("Text length ({} chars) exceeds buffer limit ({} chars), using token-based chunking", 
+                    text.len(), max_char_buffer),
+            });
         }
 
         self.process_token_chunked_text(
@@ -87,20 +91,27 @@ impl Annotator {
         // Build the prompt
         let prompt = self.build_prompt(text, additional_context)?;
         
-        // Always show language model call progress
-        println!("🤖 Calling {} model: {} ({} chars input)", 
-            self.language_model.provider_name(),
-            self.language_model.model_id(),
-            text.len());
+        // Report processing started
+        report_progress(ProgressEvent::ProcessingStarted {
+            text_length: text.len(),
+            model: self.language_model.model_id().to_string(),
+            provider: self.language_model.provider_name().to_string(),
+        });
         
         if debug {
-            println!("🔧 DEBUG: Calling language model with prompt:");
-            println!("   Model: {}", self.language_model.model_id());
-            println!("   Provider: {}", self.language_model.provider_name());
-            println!("   Prompt: {}", &prompt.chars().take(200).collect::<String>());
-            if prompt.len() > 200 {
-                println!("   ... (truncated, total length: {} chars)", prompt.len());
-            }
+            let prompt_preview = if prompt.len() > 200 {
+                format!("{}... (truncated, total length: {} chars)", 
+                    &prompt.chars().take(200).collect::<String>(), prompt.len())
+            } else {
+                prompt.clone()
+            };
+            report_progress(ProgressEvent::Debug {
+                operation: "model_call".to_string(),
+                details: format!("Model: {}, Provider: {}, Prompt: {}", 
+                    self.language_model.model_id(),
+                    self.language_model.provider_name(),
+                    prompt_preview),
+            });
         }
 
         // Create inference parameters
@@ -111,9 +122,18 @@ impl Annotator {
         // Call the language model
         let results = self.language_model.infer(&[prompt], &kwargs).await?;
         
-        println!("📥 Received response from language model");
+        report_progress(ProgressEvent::ModelResponse {
+            success: true,
+            output_length: results.first()
+                .and_then(|batch| batch.first())
+                .map(|output| output.text().len()),
+        });
+        
         if debug {
-            println!("🔧 DEBUG: Received {} batches from language model", results.len());
+            report_progress(ProgressEvent::Debug {
+                operation: "model_response".to_string(),
+                details: format!("Received {} batches from language model", results.len()),
+            });
         }
 
         // Extract the response
@@ -124,8 +144,10 @@ impl Annotator {
                 let response_text = output.text();
                 
                 if debug {
-                    println!("🔧 DEBUG: Raw response from model:");
-                    println!("   {}", response_text);
+                    report_progress(ProgressEvent::Debug {
+                        operation: "model_response".to_string(),
+                        details: format!("Raw response from model: {}", response_text),
+                    });
                 }
 
                 // Extract expected fields from examples for validation
@@ -138,24 +160,39 @@ impl Annotator {
                     .collect();
 
                 // Use new validation system with raw data preservation
+                report_progress(ProgressEvent::ValidationStarted {
+                    raw_output_length: response_text.len(),
+                });
+
                 match resolver.validate_and_parse(response_text, &expected_fields) {
                     Ok((mut extractions, validation_result)) => {
                         // Report validation results
+                        report_progress(ProgressEvent::ValidationCompleted {
+                            extractions_found: extractions.len(),
+                            aligned_count: 0, // Will be updated after alignment
+                            errors: validation_result.errors.len(),
+                            warnings: validation_result.warnings.len(),
+                        });
+
                         if debug {
-                            println!("🔧 DEBUG: Validation result: valid={}, errors={}, warnings={}", 
-                                validation_result.is_valid, 
-                                validation_result.errors.len(),
-                                validation_result.warnings.len());
-                            
                             if let Some(raw_file) = &validation_result.raw_output_file {
-                                println!("🔧 DEBUG: Raw output saved to: {}", raw_file);
+                                report_progress(ProgressEvent::Debug {
+                                    operation: "validation".to_string(),
+                                    details: format!("Raw output saved to: {}", raw_file),
+                                });
                             }
 
                             for error in &validation_result.errors {
-                                println!("🔧 DEBUG: Validation error: {}", error.message);
+                                report_progress(ProgressEvent::Debug {
+                                    operation: "validation".to_string(),
+                                    details: format!("Validation error: {}", error.message),
+                                });
                             }
                             for warning in &validation_result.warnings {
-                                println!("🔧 DEBUG: Validation warning: {}", warning.message);
+                                report_progress(ProgressEvent::Debug {
+                                    operation: "validation".to_string(),
+                                    details: format!("Validation warning: {}", warning.message),
+                                });
                             }
                         }
 
@@ -165,15 +202,21 @@ impl Annotator {
                             .unwrap_or(0);
                         
                         annotated_doc.extractions = Some(extractions);
-                        if debug {
-                            println!("🔧 DEBUG: Successfully parsed {} extractions ({} aligned)", 
-                                   annotated_doc.extraction_count(), aligned_count);
-                        }
+                        
+                        // Update validation result with actual aligned count
+                        report_progress(ProgressEvent::ValidationCompleted {
+                            extractions_found: annotated_doc.extraction_count(),
+                            aligned_count,
+                            errors: validation_result.errors.len(),
+                            warnings: validation_result.warnings.len(),
+                        });
                     }
                     Err(e) => {
                         if debug {
-                            println!("🔧 DEBUG: Failed to parse response as structured data: {}", e);
-                            println!("   Treating as unstructured response");
+                            report_progress(ProgressEvent::Debug {
+                                operation: "validation".to_string(),
+                                details: format!("Failed to parse response as structured data: {}. Treating as unstructured response", e),
+                            });
                         }
                         // If parsing fails, create a single extraction with the raw response
                         let extraction = Extraction::new("raw_response".to_string(), response_text.to_string());
@@ -236,11 +279,19 @@ impl Annotator {
             text_chunks.push(text_chunk);
         }
         
-        // Always show chunking progress for user feedback
-        println!("📄 Processing document with {} token-based chunks ({} chars total)", text_chunks.len(), text.len());
+        // Report chunking started
+        report_progress(ProgressEvent::ChunkingStarted {
+            total_chars: text.len(),
+            chunk_count: text_chunks.len(),
+            strategy: "token-based".to_string(),
+        });
+        
         if debug {
             for (i, chunk) in text_chunks.iter().enumerate() {
-                println!("   Token Chunk {}: {} chars (offset: {})", i, chunk.char_length, chunk.char_offset);
+                report_progress(ProgressEvent::Debug {
+                    operation: "chunking".to_string(),
+                    details: format!("Token Chunk {}: {} chars (offset: {})", i, chunk.char_length, chunk.char_offset),
+                });
             }
         }
 
@@ -277,8 +328,12 @@ impl Annotator {
 
         for (batch_idx, chunk_batch) in chunks.chunks(batch_length).enumerate() {
             // Progress reporting for each batch
-            println!("🔄 Processing batch {} ({}/{} chunks processed)", 
-                batch_idx + 1, processed_chunks, total_chunks);
+            report_progress(ProgressEvent::BatchProgress {
+                batch_number: batch_idx + 1,
+                total_batches: (chunks.len() + batch_length - 1) / batch_length,
+                chunks_processed: processed_chunks,
+                total_chunks,
+            });
 
             let batch_futures: Vec<_> = chunk_batch.iter()
                 .take(effective_workers)
@@ -292,18 +347,23 @@ impl Annotator {
             }
 
             processed_chunks += chunk_batch.len();
-            println!("✅ Completed batch {} ({}/{} chunks done)", 
-                batch_idx + 1, processed_chunks, total_chunks);
             
             if debug {
-                println!("🔧 DEBUG: Batch {} processing details completed", batch_idx + 1);
+                report_progress(ProgressEvent::Debug {
+                    operation: "batch_processing".to_string(),
+                    details: format!("Batch {} processing completed ({}/{} chunks done)", 
+                        batch_idx + 1, processed_chunks, total_chunks),
+                });
             }
         }
 
         // Handle multiple extraction passes
         if extraction_passes > 1 {
             if debug {
-                println!("🔧 DEBUG: Running {} additional extraction passes", extraction_passes - 1);
+                report_progress(ProgressEvent::Debug {
+                    operation: "multipass".to_string(),
+                    details: format!("Running {} additional extraction passes", extraction_passes - 1),
+                });
             }
             
             // TODO: Implement multi-pass extraction
@@ -311,7 +371,9 @@ impl Annotator {
         }
 
         // Aggregate results
-        println!("🔄 Aggregating results from {} chunks...", chunks.len());
+        report_progress(ProgressEvent::AggregationStarted {
+            chunk_count: chunks.len(),
+        });
         let aggregator = ResultAggregator::new();
         let final_result = aggregator.aggregate_chunk_results(
             chunk_results,
@@ -319,12 +381,17 @@ impl Annotator {
             None,
         )?;
 
-        println!("🎯 Extraction complete! Found {} total extractions", 
-            final_result.extraction_count());
+        report_progress(ProgressEvent::ProcessingCompleted {
+            total_extractions: final_result.extraction_count(),
+            processing_time_ms: 0, // We don't track time here, but it's required
+        });
         
         if debug {
-            println!("🔧 DEBUG: Aggregated {} total extractions from {} chunks", 
-                final_result.extraction_count(), chunks.len());
+            report_progress(ProgressEvent::Debug {
+                operation: "aggregation".to_string(),
+                details: format!("Aggregated {} total extractions from {} chunks", 
+                    final_result.extraction_count(), chunks.len()),
+            });
         }
 
         Ok(final_result)
@@ -355,8 +422,11 @@ impl Annotator {
                 ).unwrap_or(0);
                 
                 if debug {
-                    println!("🔧 DEBUG: Chunk {} produced {} extractions ({} aligned)", 
-                        chunk.id, extractions.len(), aligned_count);
+                    report_progress(ProgressEvent::Debug {
+                        operation: "chunk_processing".to_string(),
+                        details: format!("Chunk {} produced {} extractions ({} aligned)", 
+                            chunk.id, extractions.len(), aligned_count),
+                    });
                 }
 
                 Ok(ChunkResult::success(
@@ -368,7 +438,10 @@ impl Annotator {
             }
             Err(e) => {
                 if debug {
-                    println!("🔧 DEBUG: Chunk {} failed: {}", chunk.id, e);
+                    report_progress(ProgressEvent::Debug {
+                        operation: "chunk_processing".to_string(),
+                        details: format!("Chunk {} failed: {}", chunk.id, e),
+                    });
                 }
 
                 Ok(ChunkResult::failure(

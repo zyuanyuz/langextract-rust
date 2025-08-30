@@ -58,6 +58,8 @@ mod cli {
         Examples,
         /// Convert extractions between formats
         Convert(ConvertArgs),
+        /// Execute a multi-step extraction pipeline
+        Pipeline(PipelineArgs),
     }
 
     #[derive(Args)]
@@ -134,6 +136,10 @@ mod cli {
         #[arg(long)]
         pub debug: bool,
 
+        /// Suppress progress output (quiet mode)
+        #[arg(short, long)]
+        pub quiet: bool,
+
         /// Additional context for the prompt
         #[arg(long)]
         pub context: Option<String>,
@@ -191,6 +197,29 @@ mod cli {
         pub show_intervals: bool,
     }
 
+    #[derive(Args)]
+    pub struct PipelineArgs {
+        /// Pipeline configuration file (YAML)
+        #[arg(short, long)]
+        pub config: PathBuf,
+
+        /// Input text, file path, or URL to process
+        #[arg(value_name = "INPUT")]
+        pub input: String,
+
+        /// Output file path (default: stdout)
+        #[arg(short, long)]
+        pub output: Option<PathBuf>,
+
+        /// Create sample pipeline configuration
+        #[arg(long)]
+        pub create_sample: bool,
+
+        /// Sample pipeline type (requirements, medical, etc.)
+        #[arg(long, default_value = "requirements")]
+        pub sample_type: String,
+    }
+
     #[derive(ValueEnum, Clone, Debug)]
     pub enum OutputFormat {
         Json,
@@ -225,6 +254,7 @@ mod cli {
             Commands::Providers => providers_command().await,
             Commands::Examples => examples_command().await,
             Commands::Convert(args) => convert_command(args).await,
+            Commands::Pipeline(args) => pipeline_command(args).await,
         }
     }
 
@@ -234,21 +264,32 @@ mod cli {
         // Load environment variables
         dotenvy::dotenv().ok();
 
-        println!("{}", style("🚀 LangExtract - Starting extraction...").bold().cyan());
+        if !args.quiet {
+            println!("{}", style("🚀 LangExtract - Starting extraction...").bold().cyan());
+        }
 
-        // Create progress bar
-        let pb = ProgressBar::new_spinner();
-        pb.set_style(ProgressStyle::default_spinner()
-            .template("{spinner:.green} {msg}")
-            .expect("Failed to set progress bar template"));
-        pb.set_message("Loading configuration...");
+        // Create progress bar (only in non-quiet mode)
+        let pb = if !args.quiet {
+            let pb = ProgressBar::new_spinner();
+            pb.set_style(ProgressStyle::default_spinner()
+                .template("{spinner:.green} {msg}")
+                .expect("Failed to set progress bar template"));
+            pb.set_message("Loading configuration...");
+            Some(pb)
+        } else {
+            None
+        };
 
         // Load examples
         let examples = if let Some(examples_path) = &args.examples {
-            pb.set_message("Loading examples...");
+            if let Some(ref pb) = pb {
+                pb.set_message("Loading examples...");
+            }
             load_examples(examples_path)?
         } else {
-            println!("{}", style("⚠️  No examples provided. Using default person extraction examples.").yellow());
+            if !args.quiet {
+                println!("{}", style("⚠️  No examples provided. Using default person extraction examples.").yellow());
+            }
             get_default_examples()
         };
 
@@ -257,12 +298,18 @@ mod cli {
         }
 
         // Read input
-        pb.set_message("Reading input...");
+        if let Some(ref pb) = pb {
+            pb.set_message("Reading input...");
+        }
         let text = if args.input.starts_with("http://") || args.input.starts_with("https://") {
-            println!("📥 Downloading from URL: {}", args.input);
+            if !args.quiet {
+                println!("📥 Downloading from URL: {}", args.input);
+            }
             langextract_rust::io::download_text_from_url(&args.input).await?
         } else if std::path::Path::new(&args.input).exists() {
-            println!("📖 Reading file: {}", args.input);
+            if !args.quiet {
+                println!("📖 Reading file: {}", args.input);
+            }
             fs::read_to_string(&args.input)?
         } else {
             // Treat as literal text
@@ -274,7 +321,9 @@ mod cli {
         }
 
         // Configure extraction
-        pb.set_message("Configuring extraction...");
+        if let Some(ref pb) = pb {
+            pb.set_message("Configuring extraction...");
+        }
         let mut config = ExtractConfig {
             model_id: args.model.clone(),
             api_key: args.api_key.clone(),
@@ -294,6 +343,15 @@ mod cli {
             additional_context: args.context.clone(),
             ..Default::default()
         };
+
+        // Configure progress handling based on CLI options
+        if args.quiet {
+            config = config.with_quiet_mode();
+        } else if args.debug || verbose {
+            config = config.with_verbose_progress();
+        } else {
+            config = config.with_console_progress();
+        }
 
         // Set up provider configuration (required)
         let provider_config = match args.provider {
@@ -316,7 +374,9 @@ mod cli {
             serde_json::to_value(&provider_config)?
         );
 
-        pb.set_message("Performing extraction...");
+        if let Some(ref pb) = pb {
+            pb.set_message("Performing extraction...");
+        }
 
         // Perform extraction
         let result = match extract(
@@ -326,26 +386,34 @@ mod cli {
             config,
         ).await {
             Ok(result) => {
-                pb.finish_with_message("✅ Extraction completed");
+                if let Some(ref pb) = pb {
+                    pb.finish_with_message("✅ Extraction completed");
+                }
                 result
             }
             Err(e) => {
-                pb.finish_with_message("❌ Extraction failed");
+                if let Some(ref pb) = pb {
+                    pb.finish_with_message("❌ Extraction failed");
+                }
                 return Err(handle_extraction_error(e));
             }
         };
 
         let elapsed = start_time.elapsed();
-        println!("{} Found {} extractions in {:.2}s", 
-            style("🎯").green(), 
-            result.extraction_count(), 
-            elapsed.as_secs_f64()
-        );
+        if !args.quiet {
+            println!("{} Found {} extractions in {:.2}s", 
+                style("🎯").green(), 
+                result.extraction_count(), 
+                elapsed.as_secs_f64()
+            );
+        }
 
         // Output results
         if let Some(output_path) = &args.output {
             write_output(&result, output_path, &args)?;
-            println!("💾 Results saved to: {}", output_path.display());
+            if !args.quiet {
+                println!("💾 Results saved to: {}", output_path.display());
+            }
         } else {
             print_output(&result, &args)?;
         }
@@ -373,7 +441,9 @@ mod cli {
             );
             
             fs::write(&filename, exported)?;
-            println!("📊 Visualization exported to: {}", filename);
+            if !args.quiet {
+                println!("📊 Visualization exported to: {}", filename);
+            }
         }
 
         Ok(())
@@ -614,6 +684,84 @@ OLLAMA_BASE_URL=http://localhost:11434
             args.input.display(), 
             args.output.display()
         );
+
+        Ok(())
+    }
+
+    async fn pipeline_command(args: PipelineArgs) -> Result<(), Box<dyn std::error::Error>> {
+        use langextract_rust::pipeline::{PipelineExecutor, utils};
+
+        // Handle sample pipeline creation
+        if args.create_sample {
+            println!("{}", style("📝 Creating sample pipeline configuration...").bold().cyan());
+
+            let sample_config = match args.sample_type.as_str() {
+                "requirements" => utils::create_requirements_pipeline(),
+                _ => {
+                    println!("❌ Unknown sample type: {}. Using requirements as default.", args.sample_type);
+                    utils::create_requirements_pipeline()
+                }
+            };
+
+            utils::save_pipeline_to_file(&sample_config, &args.config)?;
+            println!("✅ Created sample pipeline configuration: {}", args.config.display());
+
+            // Print usage example
+            println!("\n{}", style("Usage Example:").bold().yellow());
+            println!("  lx-rs pipeline --config {} \"The system shall process 100 transactions per second.\"",
+                     args.config.display());
+
+            return Ok(());
+        }
+
+        // Execute pipeline
+        println!("{}", style("🔬 Executing pipeline...").bold().cyan());
+
+        // Load pipeline configuration
+        let executor = PipelineExecutor::from_yaml_file(&args.config)?;
+
+        // Read input text
+        let input_text = if args.input.starts_with("http") {
+            // Handle URL input
+            println!("🌐 Downloading content from URL...");
+            langextract_rust::io::download_text_from_url(&args.input).await?
+        } else if std::path::Path::new(&args.input).exists() {
+            // Handle file input
+            println!("📖 Reading content from file...");
+            std::fs::read_to_string(&args.input)?
+        } else {
+            // Handle direct text input
+            args.input.clone()
+        };
+
+        // Execute the pipeline
+        let result = executor.execute(&input_text).await?;
+
+        // Output results
+        let output_content = serde_json::to_string_pretty(&result.nested_output)?;
+
+        if let Some(output_path) = &args.output {
+            std::fs::write(output_path, &output_content)?;
+            println!("💾 Pipeline results saved to: {}", output_path.display());
+        } else {
+            println!("{}", output_content);
+        }
+
+        // Print summary
+        println!("\n{}", style("📊 Pipeline Summary:").bold().green());
+        println!("  📈 Total processing time: {}ms", result.total_time_ms);
+        println!("  🔄 Steps executed: {}", result.step_results.len());
+        println!("  ✅ Successful steps: {}", result.step_results.iter().filter(|s| s.success).count());
+
+        // Show step details
+        for step_result in &result.step_results {
+            let status = if step_result.success { "✅" } else { "❌" };
+            println!("  {} {}: {} extractions in {}ms",
+                     status,
+                     step_result.step_name,
+                     step_result.extractions.len(),
+                     step_result.processing_time_ms);
+        }
 
         Ok(())
     }

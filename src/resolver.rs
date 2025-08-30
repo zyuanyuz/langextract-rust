@@ -555,9 +555,9 @@ impl Resolver {
             None
         };
 
-        // Step 2: Attempt to parse the response
+        // Step 2: Attempt to parse the response with enhanced cleaning and repair
         println!("🔍 Parsing model response...");
-        let parse_result = self.parse_response(raw_response);
+        let parse_result = self.parse_response_with_repair(raw_response, expected_fields);
         
         // Step 3: Validate the parsed data
         let mut validation_result = match &parse_result {
@@ -609,27 +609,138 @@ impl Resolver {
         }
     }
 
-    /// Parse response using existing logic (extracted from annotation.rs)
-    fn parse_response(&self, response: &str) -> LangExtractResult<Vec<Extraction>> {
+    /// Clean and preprocess response before parsing
+    fn clean_response(&self, response: &str) -> String {
+        let mut cleaned = response.to_string();
+
+        // Simple approach: remove code fence markers step by step
+        // First, handle fenced blocks with language specifiers
+        cleaned = cleaned.replace("```json", "");
+        cleaned = cleaned.replace("```yaml", "");
+        cleaned = cleaned.replace("```python", "");
+        cleaned = cleaned.replace("```javascript", "");
+        cleaned = cleaned.replace("```rust", "");
+        cleaned = cleaned.replace("```", "");
+
+        // Trim whitespace
+        cleaned.trim().to_string()
+    }
+
+    /// Detect and repair malformed JSON where multiple extraction classes are crammed into a single extraction_text
+    fn detect_and_repair_malformed_json(&self, json: &serde_json::Value, expected_fields: &[String]) -> Option<serde_json::Value> {
+        // Check if this looks like malformed JSON where multiple classes are in a single extraction_text
+        if let Some(obj) = json.as_object() {
+            // Only proceed if we have exactly one key-value pair
+            if obj.len() == 1 {
+                if let Some((single_key, single_value)) = obj.iter().next() {
+                    if let Some(extraction_text) = single_value.as_str() {
+                        // Check if the extraction_text contains multiple expected field names
+                        let mut found_fields = Vec::new();
+
+                        for field in expected_fields {
+                            // Look for patterns like "field_name: value" or "field_name - value" or "field_name=value"
+                            let patterns = [
+                                format!(r"(?i){}[:\-=]\s*([^\n\r,]*)", regex::escape(field)),
+                                format!(r"(?i){}\s*[:\-=]\s*([^\n\r,]*)", regex::escape(field)),
+                                format!(r"(?i){}[:\-=]\s*([^,\n\r]+)", regex::escape(field)),
+                            ];
+
+                            for pattern in &patterns {
+                                if let Ok(regex) = Regex::new(pattern) {
+                                    if regex.is_match(extraction_text) {
+                                        found_fields.push(field.clone());
+                                        break; // Found this field, move to next
+                                    }
+                                }
+                            }
+                        }
+
+                        // If we found multiple expected fields in the single extraction_text,
+                        // this is likely malformed and should be re-parsed
+                        if found_fields.len() > 1 {
+                            println!("🔧 Detected malformed JSON: {} extraction classes found in single extraction_text '{}'",
+                                     found_fields.len(), single_key);
+
+                            // Try to extract individual field values
+                            let mut repaired_obj = serde_json::Map::new();
+
+                            for field in &found_fields {
+                                let patterns = [
+                                    format!(r"(?i){}[:\-=]\s*([^\n\r,]*)", regex::escape(field)),
+                                    format!(r"(?i){}\s*[:\-=]\s*([^\n\r,]*)", regex::escape(field)),
+                                ];
+
+                                for pattern in &patterns {
+                                    if let Ok(regex) = Regex::new(pattern) {
+                                        if let Some(captures) = regex.captures(extraction_text) {
+                                            if let Some(value_match) = captures.get(1) {
+                                                let value = value_match.as_str().trim();
+                                                if !value.is_empty() {
+                                                    repaired_obj.insert(field.clone(), serde_json::Value::String(value.to_string()));
+                                                    break;
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            if !repaired_obj.is_empty() {
+                                println!("✅ Successfully repaired malformed JSON, extracted {} fields", repaired_obj.len());
+                                return Some(serde_json::Value::Object(repaired_obj));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        None // No repair needed
+    }
+
+    /// Parse response with enhanced cleaning and repair capabilities
+    fn parse_response_with_repair(&self, response: &str, expected_fields: &[String]) -> LangExtractResult<Vec<Extraction>> {
+        // First, clean the response (remove code fences, etc.)
+        let cleaned_response = self.clean_response(response);
+        println!("🧹 Cleaned response length: {} chars", cleaned_response.len());
+
         // Try to parse as JSON first
-        if let Ok(json_value) = serde_json::from_str::<serde_json::Value>(response) {
-            return self.parse_json_response(&json_value);
+        if let Ok(json_value) = serde_json::from_str::<serde_json::Value>(&cleaned_response) {
+            println!("📄 Parsed JSON successfully");
+
+            // Check if the JSON needs repair (malformed case with multiple classes in single extraction_text)
+            if let Some(repaired_json) = self.detect_and_repair_malformed_json(&json_value, expected_fields) {
+                println!("🔧 Applied JSON repair logic");
+                return self.parse_json_response(&repaired_json);
+            } else {
+                return self.parse_json_response(&json_value);
+            }
         }
 
         // If that fails, try to extract JSON from the response (in case it's wrapped)
-        if let Some(json_start) = response.find('{') {
-            if let Some(json_end) = response.rfind('}') {
-                let json_str = &response[json_start..=json_end];
+        if let Some(json_start) = cleaned_response.find('{') {
+            if let Some(json_end) = cleaned_response.rfind('}') {
+                let json_str = &cleaned_response[json_start..=json_end];
                 if let Ok(json_value) = serde_json::from_str::<serde_json::Value>(json_str) {
-                    return self.parse_json_response(&json_value);
+                    println!("📄 Extracted and parsed JSON from wrapped content");
+
+                    // Check if the extracted JSON needs repair
+                    if let Some(repaired_json) = self.detect_and_repair_malformed_json(&json_value, expected_fields) {
+                        println!("🔧 Applied JSON repair logic to extracted content");
+                        return self.parse_json_response(&repaired_json);
+                    } else {
+                        return self.parse_json_response(&json_value);
+                    }
                 }
             }
         }
 
         Err(LangExtractError::parsing(
-            format!("Could not parse response as JSON: {}", response)
+            format!("Could not parse response as JSON after cleaning: {}", cleaned_response)
         ))
     }
+
+
 
     /// Parse JSON response into extractions
     fn parse_json_response(&self, json: &serde_json::Value) -> LangExtractResult<Vec<Extraction>> {
@@ -875,8 +986,9 @@ mod tests {
     fn test_parse_valid_json() {
         let resolver = create_test_resolver();
         let json_response = r#"[{"person": "John Doe", "age": "30"}]"#;
-        
-        let result = resolver.parse_response(json_response);
+        let expected_fields = vec!["person".to_string(), "age".to_string()];
+
+        let result = resolver.parse_response_with_repair(json_response, &expected_fields);
         assert!(result.is_ok());
         
         let extractions = result.unwrap();
@@ -899,8 +1011,9 @@ mod tests {
     fn test_parse_wrapped_json() {
         let resolver = create_test_resolver();
         let json_response = r#"{"data": [{"name": "Alice", "city": "NYC"}]}"#;
-        
-        let result = resolver.parse_response(json_response);
+        let expected_fields = vec!["name".to_string(), "city".to_string()];
+
+        let result = resolver.parse_response_with_repair(json_response, &expected_fields);
         assert!(result.is_ok());
         
         let extractions = result.unwrap();
@@ -919,12 +1032,13 @@ mod tests {
         assert_eq!(city_extraction.extraction_text, "NYC");
     }
 
-    #[test] 
+    #[test]
     fn test_parse_invalid_json() {
         let resolver = create_test_resolver();
         let invalid_response = r#"This is not JSON at all!"#;
-        
-        let result = resolver.parse_response(invalid_response);
+        let expected_fields = vec!["name".to_string()];
+
+        let result = resolver.parse_response_with_repair(invalid_response, &expected_fields);
         assert!(result.is_err());
     }
 
@@ -1013,13 +1127,127 @@ mod tests {
     fn test_validate_and_parse_parse_failure() {
         let temp_dir = TempDir::new().unwrap();
         let resolver = create_test_resolver_with_temp_dir(&temp_dir);
-        
+
         let invalid_json = "This is definitely not JSON!";
         let expected_fields = vec!["person".to_string()];
-        
+
         let result = resolver.validate_and_parse(invalid_json, &expected_fields);
         assert!(result.is_err());
         // Raw output should still be saved even on parse failure
+    }
+
+    #[test]
+    fn test_clean_response_removes_code_fences() {
+        let temp_dir = TempDir::new().unwrap();
+        let resolver = create_test_resolver_with_temp_dir(&temp_dir);
+
+        // Test various code fence patterns
+        let test_cases = vec![
+            (r#"```json{"name": "John"}```"#, r#"{"name": "John"}"#),
+            (r#"```yaml{"name": "John"}```"#, r#"{"name": "John"}"#),
+            (r#"```{"name": "John"}```"#, r#"{"name": "John"}"#),
+            (r#"```python{"name": "John"}```"#, r#"{"name": "John"}"#),
+            (r#"Some text ```json{"name": "John"}``` more text"#, r#"Some text {"name": "John"} more text"#),
+        ];
+
+        for (input, expected) in test_cases {
+            let cleaned = resolver.clean_response(input);
+            assert_eq!(cleaned, expected, "Failed to clean: {}", input);
+        }
+    }
+
+    #[test]
+    fn test_detect_and_repair_malformed_json() {
+        let temp_dir = TempDir::new().unwrap();
+        let resolver = create_test_resolver_with_temp_dir(&temp_dir);
+        let expected_fields = vec!["name".to_string(), "age".to_string(), "city".to_string()];
+
+        // Test case: malformed JSON with multiple classes in single extraction_text
+        let malformed_json: serde_json::Value = serde_json::json!({
+            "person": "name: John Doe, age: 30, city: New York"
+        });
+
+        let repaired = resolver.detect_and_repair_malformed_json(&malformed_json, &expected_fields);
+        assert!(repaired.is_some(), "Should detect malformed JSON");
+
+        let repaired = repaired.unwrap();
+        if let Some(obj) = repaired.as_object() {
+            // Should extract name, age, and city as separate fields
+            assert!(obj.contains_key("name"), "Should extract name field");
+            assert!(obj.contains_key("age"), "Should extract age field");
+            assert!(obj.contains_key("city"), "Should extract city field");
+
+            assert_eq!(obj.get("name").unwrap().as_str().unwrap(), "John Doe");
+            assert_eq!(obj.get("age").unwrap().as_str().unwrap(), "30");
+            assert_eq!(obj.get("city").unwrap().as_str().unwrap(), "New York");
+        } else {
+            panic!("Repaired JSON should be an object");
+        }
+
+        // Test case: well-formed JSON should not be repaired
+        let well_formed_json: serde_json::Value = serde_json::json!({
+            "name": "John Doe",
+            "age": "30",
+            "city": "New York"
+        });
+
+        let repaired = resolver.detect_and_repair_malformed_json(&well_formed_json, &expected_fields);
+        assert!(repaired.is_none(), "Well-formed JSON should not be repaired");
+    }
+
+    #[test]
+    fn test_parse_response_with_code_fences() {
+        let temp_dir = TempDir::new().unwrap();
+        let resolver = create_test_resolver_with_temp_dir(&temp_dir);
+        let expected_fields = vec!["name".to_string(), "age".to_string()];
+
+        // Test parsing response wrapped in code fences
+        let fenced_response = r#"```json
+{
+  "name": "Alice",
+  "age": "25"
+}
+```"#;
+
+        let result = resolver.parse_response_with_repair(fenced_response, &expected_fields);
+        assert!(result.is_ok(), "Should parse fenced JSON successfully");
+
+        let extractions = result.unwrap();
+        assert_eq!(extractions.len(), 2, "Should extract 2 fields");
+
+        let names: Vec<_> = extractions.iter().filter(|e| e.extraction_class == "name").collect();
+        let ages: Vec<_> = extractions.iter().filter(|e| e.extraction_class == "age").collect();
+
+        assert_eq!(names.len(), 1);
+        assert_eq!(ages.len(), 1);
+        assert_eq!(names[0].extraction_text, "Alice");
+        assert_eq!(ages[0].extraction_text, "25");
+    }
+
+    #[test]
+    fn test_parse_response_with_malformed_repair() {
+        let temp_dir = TempDir::new().unwrap();
+        let resolver = create_test_resolver_with_temp_dir(&temp_dir);
+        let expected_fields = vec!["name".to_string(), "age".to_string(), "profession".to_string()];
+
+        // Test parsing malformed response that should be repaired
+        let malformed_response = r#"{
+  "person": "name: Bob Smith, age: 35, profession: engineer"
+}"#;
+
+        let result = resolver.parse_response_with_repair(malformed_response, &expected_fields);
+        assert!(result.is_ok(), "Should parse and repair malformed JSON successfully");
+
+        let extractions = result.unwrap();
+        assert_eq!(extractions.len(), 3, "Should extract 3 separate fields after repair");
+
+        let name_found = extractions.iter().any(|e| e.extraction_class == "name" && e.extraction_text == "Bob Smith");
+        let age_found = extractions.iter().any(|e| e.extraction_class == "age" && e.extraction_text == "35");
+        let profession_found = extractions.iter().any(|e| e.extraction_class == "profession" && e.extraction_text == "engineer");
+
+        assert!(name_found, "Should find extracted name");
+        assert!(age_found, "Should find extracted age");
+        assert!(profession_found, "Should find extracted profession");
     }
 
     // Type Coercion Tests

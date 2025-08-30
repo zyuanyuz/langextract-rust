@@ -105,6 +105,7 @@ The research lab is located at 450 Jane Stanford Way, Stanford, CA 94305, Buildi
         additional_context: None,
         resolver_params: HashMap::new(),
         language_model_params: HashMap::new(),
+        progress_handler: None,
     };
     
     // Add Ollama provider configuration
@@ -165,6 +166,7 @@ The research lab is located at 450 Jane Stanford Way, Stanford, CA 94305, Buildi
         additional_context: Some("Please look for people, organizations, locations, dates, contact information, financial amounts, and research topics. Be thorough and check for entities that might be easy to miss.".to_string()),
         resolver_params: HashMap::new(),
         language_model_params: HashMap::new(),
+        progress_handler: None,
     };
     
     // Add Ollama provider configuration
@@ -208,7 +210,7 @@ The research lab is located at 450 Jane Stanford Way, Stanford, CA 94305, Buildi
 
             println!("\n🎨 Text Visualization:");
             println!("=====================");
-            visualize(&result, true);
+            let _ = visualize(&result, true);
         },
         Err(e) => {
             println!("❌ Multi-pass extraction failed: {}", e);

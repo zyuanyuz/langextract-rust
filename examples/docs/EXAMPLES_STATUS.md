@@ -1,23 +1,21 @@
 # LangExtract Examples Status
 
-## ✅ All Examples Updated and Working
+## ✅ Streamlined Examples Collection
 
-All examples in the `examples/` folder have been successfully updated to use the new token-based chunking strategy.
+The examples have been cleaned up to focus on essential functionality and avoid redundancy.
 
-### **Working Examples (Tested Successfully):**
+### **Core Examples (Essential Functionality):**
 
-| Example | Provider | Status | Results |
-|---------|----------|---------|---------|
-| `ollama_test.rs` | Ollama Mistral | ✅ Working | 11 extractions found |
-| `chunking_test.rs` | Ollama Mistral | ✅ Working | 8 intelligent chunks processed |
-| `multipass_demo.rs` | Ollama Mistral | ✅ Working | 23 extractions (single-pass) |
-| `academic_paper_test.rs` | Ollama Mistral | ✅ Working | 25 chunks, 47K character paper |
-| `real_provider_test.rs` | Ollama Mistral | ✅ Working | 13 extractions from complex doc |
-| `basic_usage.rs` | Configurable | ✅ Updated | Ready for any provider |
-| `openai_test.rs` | OpenAI | ⚠️ Needs API Key | Ready to work with OPENAI_API_KEY |
-| `openai_chunking_test.rs` | OpenAI | ⚠️ Needs API Key | Ready to work with OPENAI_API_KEY |
-| `openai_providers_demo.rs` | OpenAI | ⚠️ Needs API Key | Multi-provider demo ready |
-| `advanced_chunking_demo.rs` | Configurable | 🆕 New | Comprehensive features demo |
+| Example | Purpose | Status | Description |
+|---------|---------|---------|-------------|
+| `basic_usage.rs` | Getting Started | ✅ Ready | Simple introduction to the library |
+| `alignment_demo.rs` | Character Alignment | ✅ Ready | Shows precise text positioning |
+| `multipass_demo.rs` | Multi-Pass Extraction | ✅ Ready | Improved recall through multiple passes |
+| `product_catalog_test.rs` | Real-World Use Case | ✅ Ready | Comprehensive product extraction |
+| `validation_demo.rs` | Validation System | ✅ Ready | Type coercion and error handling |
+| `advanced_chunking_demo.rs` | Chunking Features | ✅ Ready | Token-based and semantic chunking |
+| `visualization_demo.rs` | Export & Visualization | ✅ Ready | HTML, JSON, CSV export formats |
+| `pipeline_demo.rs` | Multi-Step Processing | ✅ Ready | Hierarchical extraction workflows |
 
 ### **Token-Based Chunking Features Demonstrated:**
 
@@ -77,19 +75,19 @@ enable_multipass: false, // Single pass for cost efficiency
 ### **To Test Examples:**
 
 ```bash
-# Working with Ollama (local)
-cargo run --example ollama_test
-cargo run --example chunking_test
-cargo run --example academic_paper_test
-cargo run --example multipass_demo
-
-# Ready for OpenAI (needs API key)
-echo "OPENAI_API_KEY=your_key" >> .env
-cargo run --example openai_test
-cargo run --example real_provider_test
+# Basic functionality examples
+cargo run --example basic_examples/basic_usage
+cargo run --example basic_examples/alignment_demo
+cargo run --example basic_examples/validation_demo
 
 # Advanced features
-cargo run --example advanced_chunking_demo
+cargo run --example advanced_examples/multipass_demo
+cargo run --example advanced_examples/advanced_chunking_demo
+cargo run --example advanced_examples/visualization_demo
+
+# Specialized examples
+cargo run --example product_catalog/product_catalog_test
+cargo run --example pipeline/pipeline_demo
 ```
 
 ## 🎉 Summary

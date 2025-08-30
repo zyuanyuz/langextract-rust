@@ -44,6 +44,7 @@
 //! ```
 
 // Core modules
+pub mod config;
 pub mod data;
 pub mod exceptions;
 pub mod schema;
@@ -61,27 +62,40 @@ pub mod providers;
 pub mod factory;
 
 // Utility modules
+pub mod http_client;
 pub mod io;
+pub mod logging;
+pub mod pipeline;
 pub mod progress;
 pub mod prompting;
 pub mod resolver;
+pub mod templates;
 pub mod visualization;
 
 // Re-export key types for convenience
+pub use config::{
+    LangExtractConfig, ProcessingConfig, ValidationConfig as NewValidationConfig, 
+    ChunkingConfig, AlignmentConfig as NewAlignmentConfig, MultiPassConfig as NewMultiPassConfig, 
+    VisualizationConfig, InferenceConfig as NewInferenceConfig, ProgressConfig, 
+    ChunkingStrategy, ExportFormat as NewExportFormat
+};
 pub use data::{
     AlignmentStatus, AnnotatedDocument, CharInterval, Document, ExampleData, Extraction,
     FormatType,
 };
 pub use exceptions::{LangExtractError, LangExtractResult};
 pub use inference::{BaseLanguageModel, ScoredOutput};
+pub use logging::{ProgressHandler, ProgressEvent, ConsoleProgressHandler, SilentProgressHandler, LogProgressHandler};
 pub use providers::{ProviderConfig, ProviderType, UniversalProvider};
 pub use resolver::{ValidationConfig, ValidationResult, ValidationError, ValidationWarning, CoercionSummary, CoercionDetail, CoercionTargetType};
 pub use visualization::{ExportFormat, ExportConfig, export_document};
+pub use pipeline::{PipelineConfig, PipelineStep, PipelineResult, PipelineExecutor};
 
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 /// Configuration for the extract function
-#[derive(Debug, Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct ExtractConfig {
     /// The model ID to use (e.g., "gemini-2.5-flash", "gpt-4o")
     pub model_id: String,
@@ -119,6 +133,9 @@ pub struct ExtractConfig {
     pub multipass_min_extractions: usize,
     /// Quality threshold for keeping extractions (0.0 to 1.0)
     pub multipass_quality_threshold: f32,
+    /// Progress handler for reporting extraction progress (not serialized)
+    #[serde(skip)]
+    pub progress_handler: Option<std::sync::Arc<dyn ProgressHandler>>,
 }
 
 impl Default for ExtractConfig {
@@ -142,8 +159,73 @@ impl Default for ExtractConfig {
             enable_multipass: false,
             multipass_min_extractions: 1,
             multipass_quality_threshold: 0.3,
+            progress_handler: None,
         }
     }
+}
+
+impl std::fmt::Debug for ExtractConfig {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ExtractConfig")
+            .field("model_id", &self.model_id)
+            .field("api_key", &self.api_key.as_ref().map(|_| "[REDACTED]"))
+            .field("format_type", &self.format_type)
+            .field("max_char_buffer", &self.max_char_buffer)
+            .field("temperature", &self.temperature)
+            .field("fence_output", &self.fence_output)
+            .field("use_schema_constraints", &self.use_schema_constraints)
+            .field("batch_length", &self.batch_length)
+            .field("max_workers", &self.max_workers)
+            .field("additional_context", &self.additional_context)
+            .field("resolver_params", &self.resolver_params)
+            .field("language_model_params", &self.language_model_params)
+            .field("debug", &self.debug)
+            .field("model_url", &self.model_url)
+            .field("extraction_passes", &self.extraction_passes)
+            .field("enable_multipass", &self.enable_multipass)
+            .field("multipass_min_extractions", &self.multipass_min_extractions)
+            .field("multipass_quality_threshold", &self.multipass_quality_threshold)
+            .field("progress_handler", &"<ProgressHandler>")
+            .finish()
+    }
+}
+
+impl ExtractConfig {
+    /// Set a progress handler for this configuration
+    pub fn with_progress_handler(mut self, handler: std::sync::Arc<dyn ProgressHandler>) -> Self {
+        self.progress_handler = Some(handler);
+        self
+    }
+
+    /// Enable console progress output with default settings
+    pub fn with_console_progress(mut self) -> Self {
+        self.progress_handler = Some(std::sync::Arc::new(ConsoleProgressHandler::new()));
+        self
+    }
+
+    /// Enable quiet mode (no progress output)
+    pub fn with_quiet_mode(mut self) -> Self {
+        self.progress_handler = Some(std::sync::Arc::new(SilentProgressHandler));
+        self
+    }
+
+    /// Enable verbose console output
+    pub fn with_verbose_progress(mut self) -> Self {
+        self.progress_handler = Some(std::sync::Arc::new(ConsoleProgressHandler::verbose()));
+        self
+    }
+}
+
+/// Convenient extraction function using the new unified configuration
+pub async fn extract_with_config(
+    text_or_documents: &str,
+    prompt_description: Option<&str>,
+    examples: &[ExampleData],
+    config: LangExtractConfig,
+) -> LangExtractResult<AnnotatedDocument> {
+    // Convert to legacy config for now
+    let legacy_config: ExtractConfig = config.into();
+    extract(text_or_documents, prompt_description, examples, legacy_config).await
 }
 
 /// Main extraction function that mirrors the Python API
@@ -193,6 +275,19 @@ pub async fn extract(
 
     // Load environment variables
     dotenvy::dotenv().ok();
+
+    // Initialize progress handler
+    if let Some(handler) = &config.progress_handler {
+        logging::init_progress_handler(handler.clone());
+    } else {
+        // Default to console handler if debug is enabled, otherwise silent
+        let default_handler: std::sync::Arc<dyn ProgressHandler> = if config.debug {
+            std::sync::Arc::new(ConsoleProgressHandler::new())
+        } else {
+            std::sync::Arc::new(SilentProgressHandler)
+        };
+        logging::init_progress_handler(default_handler);
+    }
 
     // Handle URL input
     let text = if io::is_url(text_or_documents) {
