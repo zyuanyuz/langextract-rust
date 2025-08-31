@@ -1,0 +1,22 @@
+# Alignment Demo Configuration
+# This demonstrates character-level text alignment features
+
+# Model configuration  
+model: "mistral"
+provider: "ollama"
+model_url: "http://localhost:11434"
+
+# Processing configuration optimized for alignment accuracy
+temperature: 0.2  # Lower temperature for more consistent positioning
+max_char_buffer: 2000
+max_workers: 2  # Fewer workers for more consistent alignment
+batch_size: 4
+extraction_passes: 1
+
+# Output options - always show intervals for alignment demo
+format: "json"
+debug: true
+show_intervals: true  # This is the key feature being demonstrated
+
+# Multipass disabled for cleaner alignment demonstration
+multipass: false

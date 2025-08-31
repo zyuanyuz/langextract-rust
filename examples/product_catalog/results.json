@@ -1,0 +1,169 @@
+{
+  "extractions": [
+    {
+      "extraction_class": "DeWalt 20V MAX Cordless Drill/Driver Kit",
+      "extraction_text": "{\"Battery Code\":\"BAT-20V-001\",\"Bin\":\"BIN-T7-001\",\"Charger Code\":\"CHG-20V-001\",\"Compliance Code\":\"COMP-TOOL-001\",\"Contractor Price\":\"$129.00\",\"Kit Code\":\"KIT-DRILL-001\",\"Kit Includes\":\"Drill, 2 batteries, charger\",\"Model\":\"DCD771C2\",\"Price\":\"$149.00\",\"SKU\":\"DEWALT-DCD771C2-001\",\"Safety Certification\":\"CERT-UL-001\",\"Store Location\":\"STORE-TOOLS-AISLE-7\",\"Tool Code\":\"TOOL-DRILL-CORD-001\",\"UPC\":\"885911234567\",\"Warranty\":\"3 years\",\"Warranty Code\":\"WAR-DEWALT-3Y-001\"}",
+      "char_interval": null,
+      "alignment_status": null,
+      "extraction_index": null,
+      "group_index": null,
+      "description": null,
+      "attributes": null
+    },
+    {
+      "extraction_class": "Herman Miller Aeron Chair",
+      "extraction_text": "{\"Authorized Dealer Code\":\"DEAL-HM-001\",\"Business Discount Available\":\"BIZ-DISC-001\",\"Lead Time\":\"2-4 weeks\",\"Model Number\":\"AE113AWBPB23103\",\"Price\":\"$1,395.00\",\"Product Code\":\"HM-AERON-B-GRA\",\"Production Code\":\"PROD-HM-001\",\"Region Code\":\"REG-NA-001\",\"Serial Number Range\":\"AER2024000001-AER2024099999\",\"Shipping Class\":\"SHIP-CLASS-OVERSIZED-001\",\"Warranty\":\"12 years\",\"Warranty Code\":\"WAR-HM-12Y-001\"}",
+      "char_interval": null,
+      "alignment_status": null,
+      "extraction_index": null,
+      "group_index": null,
+      "description": null,
+      "attributes": null
+    },
+    {
+      "extraction_class": "IKEA BEKANT Desk",
+      "extraction_text": "{\"Article Number\":\"192.786.68\",\"Assembly Code\":\"ASM-DESK-001\",\"Assembly Required\":\"YES\",\"Assembly Service\":\"SVC-ASM-001\",\"Availability\":\"In stock\",\"Barcode\":\"7340066567382\",\"Delivery Code\":\"DEL-FURN-001\",\"Family Card\":\"IKEA-FAM-001\",\"Hardware Package\":\"HW-BEKANT-001\",\"Instruction Manual\":\"MAN-BEKANT-EN-001\",\"Member Price\":\"$109.00\",\"Price\":\"$129.00\",\"Product Code\":\"IKEA-BEKANT-WHT-001\",\"SKU\":\"DESK-BEKANT-160-WHT\",\"Warehouse Location\":\"WH-FURN-B-002\"}",
+      "char_interval": null,
+      "alignment_status": null,
+      "extraction_index": null,
+      "group_index": null,
+      "description": null,
+      "attributes": null
+    },
+    {
+      "extraction_class": "L'Oréal Paris Revitalift Anti-Aging Night Cream",
+      "extraction_text": "{\"Batch Code\":\"BCH-REV-2024-001\",\"Formula\":\"Pro-Retinol + Centella Asiatica\",\"Formula Code\":\"FORM-RETINOL-001\",\"Product Code\":\"LOREAL-REVIT-NIGHT-001\",\"SKU\":\"BEAUTY-LOREAL-001\",\"Size\":\"\",\"UPC\":\"071249123456\"}",
+      "char_interval": null,
+      "alignment_status": null,
+      "extraction_index": null,
+      "group_index": null,
+      "description": null,
+      "attributes": null
+    },
+    {
+      "extraction_class": "Moderna COVID-19 Vaccine (Spikevax)",
+      "extraction_text": "{\"Administration Code\":\"ADM-IM-001 (Intramuscular)\",\"Age Group\":\"18+\",\"Billing Code\":\"91300 (CPT)\",\"CDC VFC Code\":\"VFC-COVID-001\",\"Cold Chain Code\":\"COLD-CHAIN-001\",\"Eligibility Code\":\"ELIG-ADULT-001\",\"Insurance Code\":\"INS-VAC-001\",\"Lot Number\":\"CV19VAC001\",\"NDC\":\"80777-273-10\",\"Serial Number\":\"SN-MOD-CV19-001\",\"Storage\":\"-20°C freezer\",\"VAERS Reporting Code\":\"VAERS-COVID-001\",\"VIS Date\":\"VIS-COVID-20240115\",\"Vaccine Code\":\"VAC-COVID-MODERNA-001\"}",
+      "char_interval": null,
+      "alignment_status": null,
+      "extraction_index": null,
+      "group_index": null,
+      "description": null,
+      "attributes": null
+    },
+    {
+      "extraction_class": "Pfizer Lipitor (Atorvastatin) 20mg Tablets",
+      "extraction_text": "{\"Bottle Code\":\"BTL-90CT-PFZ\",\"Brand Code\":\"BRAND-PFIZER-001\",\"DEA Schedule\":\"Not controlled\",\"Dosage Form\":\"Tablet\",\"Drug Code\":\"ATORVA-20MG-001\",\"Expiration\":\"06/2026\",\"Formulary Code\":\"FORM-TIER2-001\",\"Generic Name\":\"Atorvastatin Calcium\",\"Insurance Formulary Tier\":\"Tier 2\",\"Lot Number\":\"LIP24A001\",\"MFG License\":\"LIC-PFIZER-001\",\"Manufacturer\":\"Pfizer Inc.\",\"NDC\":\"0071-0155-23\",\"Package Size\":\"90 tablets\",\"RX Number\":\"RX-LIPITOR-001\",\"Route\":\"Oral\",\"Storage Code\":\"STOR-ROOM-TEMP-001\",\"Storage Requirements\":\"Store at 20-25°C\",\"Strength\":\"20mg\"}",
+      "char_interval": null,
+      "alignment_status": null,
+      "extraction_index": null,
+      "group_index": null,
+      "description": null,
+      "attributes": null
+    },
+    {
+      "extraction_class": "Atomic Habits by James Clear - Hardcover",
+      "extraction_text": "{\"asin\":\"ASIN: 0735211299\",\"category_code\":\"Category Code: CAT-SELFHELP-001\",\"pages\":\"Pages: 320, Page Count Code: PC-320-001\",\"price\":\"$18.00\",\"publication_date\":\"Publication Date: October 16, 2018, Pub Code: PUB-20181016-001\",\"publisher_code\":\"Publisher Code: PUB-AVERY-001\",\"sku\":\"BOOK-ATOM-HABITS-HC-001\"}",
+      "char_interval": {
+        "start_pos": 10098,
+        "end_pos": 10255
+      },
+      "alignment_status": "match_fuzzy",
+      "extraction_index": null,
+      "group_index": null,
+      "description": null,
+      "attributes": null
+    },
+    {
+      "extraction_class": "Benjamin Moore Regal Select Interior Paint - Eggshell Finish",
+      "extraction_text": "{\"base\":\"Base: White\",\"color_code\":\"Color Code: HC-172 (Revere Pewter)\",\"coverage\":\"Coverage: 400-450 sq ft per gallon, Coverage Code: COV-400SQF-001\",\"lot_number\":\"Lot Number: BM24A001, Mix Date: Valid for 1 year, Mix Code: MIX-2024-001\",\"price_per_gallon\":\"Price per gallon: $84.99, Contractor Price: $67.99 (Contractor ID: CONT-PAINT-001)\",\"sheen_code\":\"Sheen Level: 20-25%, Sheen Code: SHEEN-EGGSHELL-001\",\"sku\":\"BM-REGAL-EGG-HC172-001\",\"tint_formula\":\"Tint Formula: TINT-HC172-001\",\"upc\":\"072962123456\"}",
+      "char_interval": {
+        "start_pos": 11778,
+        "end_pos": 12084
+      },
+      "alignment_status": "match_fuzzy",
+      "extraction_index": null,
+      "group_index": null,
+      "description": null,
+      "attributes": null
+    },
+    {
+      "extraction_class": "Big Green Egg Large Ceramic Kamado Grill",
+      "extraction_text": "{\"accessory_code\":\"Accessories Available: Nest, ConvEGGtor, Plate Setter, Accessory Code: ACC-BGE-001\",\"assembly_code\":\"Assembly: Minimal required, Assembly Code: ASM-MINIMAL-001\",\"model\":\"Model: LHDFCE, Product Code: BGE-LARGE-COMP-001\",\"package_deal\":\"Package Deal: $1,399.00 (with accessories, Package ID: PKG-BGE-ACC-001)\",\"price\":\"$1,099.00\",\"temperature_range\":\"Temperature Range: 200°F - 750°F+, Temp Code: TEMP-200-750-001\"}",
+      "char_interval": {
+        "start_pos": 12414,
+        "end_pos": 12692
+      },
+      "alignment_status": "match_fuzzy",
+      "extraction_index": null,
+      "group_index": null,
+      "description": null,
+      "attributes": null
+    },
+    {
+      "extraction_class": "Honeywell Lyric T5 Wi-Fi Programmable Thermostat",
+      "extraction_text": "{\"compatibility_code\":\"Compatibility Code: COMP-SMART-HOME-001\",\"installation_code\":\"Install Code: INST-THERMO-001\",\"price\":\"$149.99\",\"product_number\":\"Model: RCHT8610WF2006/W, Product Code: HON-LYRIC-T5-001\",\"rebate_available\":\"Rebate Available: $50 (Utility Company: UTIL-REBATE-001)\",\"warranty_code\":\"Warranty Code: WAR-HONEYWELL-5Y-001\"}",
+      "char_interval": {
+        "start_pos": 11239,
+        "end_pos": 11404
+      },
+      "alignment_status": "match_fuzzy",
+      "extraction_index": null,
+      "group_index": null,
+      "description": null,
+      "attributes": null
+    },
+    {
+      "extraction_class": "Neutrogena Ultra Sheer Dry-Touch Sunscreen SPF 100+",
+      "extraction_text": "{\"active_ingredients\":\"Avobenzone 3%, Homosalate 15%, Octisalate 5%\",\"expiry\":\"Expiry: 08/2026, MFG Date Code: MFG-2024-Q2-001\",\"inactive_ingredients\":\"Water, Silica, Formula Code: FORM-SUNSCREEN-001\",\"ndc\":\"12345-678-90\",\"package_code\":\"PKG-TUBE-3OZ-001\",\"package_size\":\"Size: 3 fl oz / 88 mL\",\"price\":\"$11.99\",\"product_code\":\"NEUTRO-SUN-SPF100-001\",\"size\":\"3 fl oz / 88 mL\",\"sku\":\"SUNCARE-NEUTRO-001\",\"upc\":\"086800123456\"}",
+      "char_interval": {
+        "start_pos": 8478,
+        "end_pos": 8673
+      },
+      "alignment_status": "match_fuzzy",
+      "extraction_index": null,
+      "group_index": null,
+      "description": null,
+      "attributes": null
+    },
+    {
+      "extraction_class": "Peloton Bike+ - Indoor Exercise Bike",
+      "extraction_text": "{\"delivery_setup\":\"Delivery & Setup: DEL-SETUP-PELOTON-001, Service Code: SVC-DELIVERY-001\",\"dimensions\":\"Dimensions: 59\\\" L x 23\\\" W x 53\\\" H, Dimension Code: DIM-BIKEPLUS-001\",\"price\":\"$499.99\",\"product_code\":\"SONY-PS5-STD-001\",\"subscription\":\"Subscription Required: SUB-PELOTON-001 ($44/month)\",\"weight\":\"Weight: 140 lbs, Shipping Weight: 175 lbs, Weight Code: WT-SHIP-175-001\"}",
+      "char_interval": {
+        "start_pos": 9721,
+        "end_pos": 9952
+      },
+      "alignment_status": "match_fuzzy",
+      "extraction_index": null,
+      "group_index": null,
+      "description": null,
+      "attributes": null
+    },
+    {
+      "extraction_class": "PlayStation 5 Console - Standard Edition",
+      "extraction_text": "{\"bundle_id\":\"Bundle ID: BUN-PS5-GAME2-001\",\"console_code\":\"Console Code: CONS-PS5-STD-001\",\"included\":\"Included: Console, DualSense controller, cables, Bundle Code: BUN-PS5-STD-001\",\"product_code\":\"SONY-PS5-STD-001\",\"storage\":\"Storage: 825GB SSD, Storage Code: STOR-825GB-SSD-001\",\"upc\":\"711719123456\"}",
+      "char_interval": {
+        "start_pos": 10596,
+        "end_pos": 10756
+      },
+      "alignment_status": "match_fuzzy",
+      "extraction_index": null,
+      "group_index": null,
+      "description": null,
+      "attributes": null
+    },
+    {
+      "extraction_class": "Wilson Pro Staff 97 v13 Tennis Racquet",
+      "extraction_text": "{\"balance\":\"Balance: 315mm, Balance Code: BAL-315MM-001\",\"grip_code\":\"GRIP-SIZE-3-001\",\"model\":\"Model: WR013711U3\",\"product_code\":\"WILSON-PS97-V13-001\",\"string_code\":\"STR-16X19-001\",\"weight\":\"Weight: 315g unstrung, Weight Code: WT-315G-001\"}",
+      "char_interval": {
+        "start_pos": 9051,
+        "end_pos": 9142
+      },
+      "alignment_status": "match_fuzzy",
+      "extraction_index": null,
+      "group_index": null,
+      "description": null,
+      "attributes": null
+    }
+  ],
+  "text": "ELECTRONICS DEPARTMENT - CATALOG 2024\n\nApple MacBook Pro 16-inch M3 Max - Model SKU: MBP-M3-16-SLV-2TB\nProduct Code: APPLE-2024-001, UPC: 194253715726, GTIN: 00194253715726\nAdvanced M3 Max chip with 16-core CPU and 40-core GPU for professional workflows\nStarting at $3,999.00 (MSRP). Warranty Code: APL-WAR-24M-001\nPremium aluminum construction with Liquid Retina XDR display\nReference ID: REF-2024-APPLE-001, Internal Code: INT-MAC-001\nPerfect for creative professionals and developers\nIn stock - ships within 24-48 hours. Supplier Code: SUP-APPLE-MAIN\n\nSamsung 85\" Neo QLED 8K Smart TV - Model QN85QN900C\nSKU: SAM-TV-85-8K-001, Product ID: PID-SAMSUNG-TV-001\nItem Number: ITM-789456123, Barcode: 887276661234\nCrystal UHD 8K resolution with Quantum HDR 64X technology\nPrice: $4,299.99, Was: $5,499.99 (Sale ID: SALE-2024-WINTER-001)\nReference: REF-SAM-TV-001, Catalog Code: CAT-ELEC-001\n65-inch and 75-inch models also available\nCurrently in stock. Store Code: STORE-001-NYC\nShipping Code: SHIP-FRAGILE-001, Transit ID: TID-ELEC-001\n\nSony WH-1000XM5 Wireless Noise Canceling Headphones\nProduct Code: SONY-WH1000XM5-BLK, Model: WH-1000XM5\nUPC: 027242926844, EAN: 4548736141452\nIndustry-leading noise cancellation with 30-hour battery life\nPrice: $399.99, Member Price: $349.99 (Membership ID: MEM-AUDIO-001)\nSKU: SONY-AUDIO-001, Part Number: PN-AUDIO-HEADPHONES-001\nAvailable in Black, Silver. Color Codes: CLR-BLK-001, CLR-SLV-001\nIn stock at all locations. Inventory Code: INV-AUDIO-WH1000XM5\n\nMEDICAL SUPPLIES SECTION\n\nPhilips Respironics DreamStation 2 CPAP Machine\nDevice Model: DS2-CPAP-001, FDA Code: FDA-510K-001234\nSerial Number Range: DS2240000001-DS2240099999\nMedical Device Classification: Class II, Product Code: MDS\nPrescription Required: RX-REQ-001, Insurance Code: INS-DME-001\nAdvanced sleep therapy with integrated humidifier\nPrice: $849.00, Insurance Billable Code: HCPCS-E0601\nSupplier: MED-SUPPLY-001, License: LIC-DME-STATE-001\nProduct Lot: LOT-DS2-2024-Q1, Expiry Tracking: EXP-2029-001\n\n3M N95 Respirator Masks - Model 8210\nProduct Code: 3M-8210-N95, NIOSH Approval: TC-84A-001\nLot Numbers: 2024A1234, 2024B5678, 2024C9012\nFDA Emergency Use Authorization: EUA-001234\nBox of 20 masks, Case Code: CASE-PPE-001\nPrice per box: $24.99, Bulk Code: BULK-PPE-001 (for 50+ boxes)\nMedical Supply License: MSL-001234, Distributor Code: DIST-PPE-001\nCurrent inventory: 500 cases, Warehouse Code: WH-PPE-001\n\nAUTOMOTIVE PARTS DEPARTMENT\n\nBosch Premium Spark Plugs - Platinum+4\nPart Number: 4417, OEM Code: OEM-BOSCH-001\nFitment Code: FIT-MULTI-001, Compatible with vehicles: VEH-LIST-001\nUniversal fit for most 4-cylinder engines\nPrice: $12.99 each, Set of 4: $49.99, Bundle Code: BUN-SPARK-001\nSupplier Part: SUP-BOSCH-4417, Cross Reference: XREF-NGK-001\nWarehouse Location: WH-AUTO-A-SHELF-15, Bin Code: BIN-A15-001\nTechnical Specification: SPEC-SPARK-PLAT-001\n\nMichelin Pilot Sport 4S Tires - Size 245/40ZR18\nTire Code: MICHELIN-PS4S-245-40-18, DOT Code: DOT-MIC-PS4S-001\nSpeed Rating: Y (186 mph), Load Index: 97, Construction Code: CONS-RADIAL-001\nUTQG Rating: 300 AA A, Treadwear Code: TREAD-300-001\nPrice: $289.99 per tire, Set of 4: $1,099.99 (Discount Code: DISC-TIRE-SET-001)\nInstallation Service: SVC-TIRE-INSTALL-001, Labor Code: LAB-TIRE-001\nManufacturer Code: MFG-MICHELIN-001, Import Code: IMP-TIRE-001\n\nHEALTHCARE PRODUCTS\n\nJohnson & Johnson Tylenol Extra Strength - 500mg Caplets\nNDC Number: 50580-488-02, UPC: 300450813022\nLot Number: TYL24A001, Exp Date: 12/2026, Control Number: CTL-TYL-001\nActive Ingredient: Acetaminophen 500mg, Formula Code: FORM-ACET-500\nPackage Size: 24 caplets, Bottle Code: BTL-24CT-001\nPrice: $8.99, Generic Available: GEN-ACET-500-001\nFDA Registration: REG-FDA-JNJ-001, Manufacturing Code: MFG-JNJ-001\nPharmacy Code: PHAR-OTC-001, Insurance Billable: No\n\nAbbott BinaxNOW COVID-19 Antigen Self Test\nFDA EUA Number: EUA-ABBOTT-001234, Product Code: ANTIGEN-COVID-001\nKit Contents: 2 tests, Test Code: TEST-COVID-RAPID-001\nLot Numbers: CV19T001A, CV19T001B, CV19T001C\nCLIA Waived: CLIA-WAIVED-001, Lab Code: LAB-HOME-TEST-001\nPrice: $23.99 per kit, Bulk Pricing: BULK-TEST-001 (for healthcare providers)\nDistribution Code: DIST-RAPID-TEST-001, Supply Chain: SC-COVID-001\nTemperature Storage: TEMP-ROOM-001 (59-86°F)\n\nFURNITURE SECTION\n\nIKEA BEKANT Desk - White, 63x31 1/2\"\nArticle Number: 192.786.68, Product Code: IKEA-BEKANT-WHT-001\nBarcode: 7340066567382, SKU: DESK-BEKANT-160-WHT\nAssembly Required: YES, Assembly Code: ASM-DESK-001\nHardware Package: HW-BEKANT-001, Instruction Manual: MAN-BEKANT-EN-001\nPrice: $129.00, Member Price: $109.00 (Family Card: IKEA-FAM-001)\nAvailability: In stock, Warehouse Location: WH-FURN-B-002\nDelivery Code: DEL-FURN-001, Assembly Service: SVC-ASM-001\n\nHerman Miller Aeron Chair - Size B, Graphite\nModel Number: AE113AWBPB23103, Product Code: HM-AERON-B-GRA\nSerial Number Range: AER2024000001-AER2024099999\nWarranty: 12 years, Warranty Code: WAR-HM-12Y-001\nAuthorized Dealer Code: DEAL-HM-001, Region Code: REG-NA-001\nPrice: $1,395.00, Business Discount Available: BIZ-DISC-001\nLead Time: 2-4 weeks, Production Code: PROD-HM-001\nShipping Class: SHIP-CLASS-OVERSIZED-001\n\nPHARMACEUTICAL SECTION\n\nPfizer Lipitor (Atorvastatin) 20mg Tablets\nNDC: 0071-0155-23, Drug Code: ATORVA-20MG-001\nDEA Schedule: Not controlled, RX Number: RX-LIPITOR-001\nGeneric Name: Atorvastatin Calcium, Brand Code: BRAND-PFIZER-001\nManufacturer: Pfizer Inc., MFG License: LIC-PFIZER-001\nStrength: 20mg, Dosage Form: Tablet, Route: Oral\nPackage Size: 90 tablets, Bottle Code: BTL-90CT-PFZ\nNDC Labeler: 0071, Product: 0155, Package: 23\nLot Number: LIP24A001, Expiration: 06/2026\nStorage Requirements: Store at 20-25°C, Storage Code: STOR-ROOM-TEMP-001\nInsurance Formulary Tier: Tier 2, Formulary Code: FORM-TIER2-001\n\nModerna COVID-19 Vaccine (Spikevax)\nNDC: 80777-273-10, Vaccine Code: VAC-COVID-MODERNA-001\nLot Number: CV19VAC001, Serial Number: SN-MOD-CV19-001\nCDC VFC Code: VFC-COVID-001, VIS Date: VIS-COVID-20240115\nStorage: -20°C freezer, Cold Chain Code: COLD-CHAIN-001\nAdministration Code: ADM-IM-001 (Intramuscular)\nAge Group: 18+, Eligibility Code: ELIG-ADULT-001\nVAERS Reporting Code: VAERS-COVID-001\nBilling Code: 91300 (CPT), Insurance Code: INS-VAC-001\n\nTOOLS & HARDWARE\n\nDeWalt 20V MAX Cordless Drill/Driver Kit\nModel: DCD771C2, UPC: 885911234567\nSKU: DEWALT-DCD771C2-001, Tool Code: TOOL-DRILL-CORD-001\nKit Includes: Drill, 2 batteries, charger, Kit Code: KIT-DRILL-001\nBattery Code: BAT-20V-001, Charger Code: CHG-20V-001\nPrice: $149.00, Contractor Price: $129.00 (Contractor ID: CONT-001)\nWarranty: 3 years, Warranty Code: WAR-DEWALT-3Y-001\nStore Location: STORE-TOOLS-AISLE-7, Bin: BIN-T7-001\nSafety Certification: CERT-UL-001, Compliance Code: COMP-TOOL-001\n\nTEXTILES & APPAREL\n\nLevi's 501 Original Fit Jeans - Men's\nStyle Number: 00501-0000, Color Code: INDIGO-RINSE-001\nUPC: 037456789012, SKU: LEVIS-501-ORIG-IND-001\nMaterial Code: MAT-DENIM-100COT-001, Fabric Weight: 14.75 oz\nSize Range: 28-42 waist, 30-36 length, Size Chart: SIZE-MENS-JEANS-001\nPrice: $69.50, Sale Price: $49.99 (Promotion Code: PROMO-DENIM-001)\nSupplier: LEVI-STRAUSS-001, Import Code: IMP-DENIM-001\nCare Instructions: CARE-DENIM-COLD-001, Wash Code: WASH-COLD-001\nCountry of Origin: Bangladesh, Origin Code: ORIG-BD-001\n\nNike Air Max 270 - Men's Running Shoes\nStyle Code: AH8050-001, Color: Black/White, Colorway Code: CW-BLK-WHT-001\nUPC: 192499123456, SKU: NIKE-AM270-BLK-001\nSize Range: 7-15, Size Chart: SIZE-MENS-SHOES-001\nTechnology: Air Max 270 unit, Tech Code: TECH-AIRMAX270-001\nPrice: $150.00, Employee Discount: 30% (Employee ID: EMP-NIKE-001)\nRelease Date: 03/26/2018, Release Code: REL-2018-Q1-001\nFactory Code: FAC-NIKE-VN-001, Quality Code: QC-NIKE-001\n\nBEAUTY & PERSONAL CARE\n\nL'Oréal Paris Revitalift Anti-Aging Night Cream\nUPC: 071249123456, Product Code: LOREAL-REVIT-NIGHT-001\nSKU: BEAUTY-LOREAL-001, Batch Code: BCH-REV-2024-001\nFormula: Pro-Retinol + Centella Asiatica, Formula Code: FORM-RETINOL-001\nSize: 1.7 oz / 48g, Package Code: PKG-NIGHT-CREAM-001\nPrice: $24.99, Loyalty Price: $19.99 (Beauty Insider: BI-MEMBER-001)\nDermatologist Tested: DERM-TEST-001, Safety Code: SAFE-COSMETIC-001\nCruelty Free: CF-CERTIFIED-001, Ingredient List: ING-LIST-REV-001\nExpiry: 36 months from manufacture, MFG Date Code: MFG-2024-Q2-001\n\nNeutrogena Ultra Sheer Dry-Touch Sunscreen SPF 100+\nNDC: 12345-678-90, Product Code: NEUTRO-SUN-SPF100-001\nUPC: 086800123456, SKU: SUNCARE-NEUTRO-001\nActive Ingredients: Avobenzone 3%, Homosalate 15%, Octisalate 5%\nInactive Ingredients: Water, Silica, Formula Code: FORM-SUNSCREEN-001\nFDA Monograph: MONO-SUNSCREEN-001, OTC Drug Code: OTC-SUN-001\nSize: 3 fl oz / 88 mL, Package Code: PKG-TUBE-3OZ-001\nPrice: $11.99, Dermatologist Recommended: DERM-REC-001\nLot Number: SUN24A001, Expiry Date: 08/2026\nStorage: Store below 30°C, Storage Code: STOR-COOL-001\n\nSPORTING GOODS\n\nWilson Pro Staff 97 v13 Tennis Racquet\nModel: WR013711U3, Product Code: WILSON-PS97-V13-001\nGrip Size: 3 (4 3/8\"), Grip Code: GRIP-SIZE-3-001\nString Pattern: 16x19, String Code: STR-16X19-001\nWeight: 315g unstrung, Weight Code: WT-315G-001\nBalance: 315mm, Balance Code: BAL-315MM-001\nPrice: $249.00, Pro Price: $199.00 (Pro Shop ID: PRO-TENNIS-001)\nEndorsed by: Roger Federer, Endorsement Code: END-FEDERER-001\nFrame Technology: Countervail, Tech Code: TECH-COUNTERVAIL-001\nWarranty: 1 year, Warranty Code: WAR-WILSON-1Y-001\n\nPeloton Bike+ - Indoor Exercise Bike\nModel: PL-BIKE-PLUS-001, Serial Number Prefix: PEL2024\nProduct Code: PELOTON-BIKEPLUS-001, UPC: 850005123456\nFeatures: 23.8\" HD touchscreen, rotating display, Tech Code: TECH-ROTATE-SCREEN-001\nPrice: $2,495.00, Financing Available: FIN-PELOTON-001 (0% APR for 39 months)\nDelivery & Setup: DEL-SETUP-PELOTON-001, Service Code: SVC-DELIVERY-001\nSubscription Required: SUB-PELOTON-001 ($44/month)\nDimensions: 59\" L x 23\" W x 53\" H, Dimension Code: DIM-BIKEPLUS-001\nWeight: 140 lbs, Shipping Weight: 175 lbs, Weight Code: WT-SHIP-175-001\n\nBOOKS & MEDIA\n\nAtomic Habits by James Clear - Hardcover\nISBN-13: 978-0735211292, ISBN-10: 0735211299\nASIN: 0735211299, SKU: BOOK-ATOM-HABITS-HC-001\nPublisher: Avery, Publisher Code: PUB-AVERY-001\nPublication Date: October 16, 2018, Pub Code: PUB-20181016-001\nPages: 320, Page Count Code: PC-320-001\nPrice: $18.00, Member Price: $16.20 (Membership: MEMBER-BOOKS-001)\nCategory: Self-Help, Category Code: CAT-SELFHELP-001\nBestseller List: #1 New York Times, Bestseller Code: NYT-001\nStock: 247 copies, Inventory Code: INV-ATOM-HABITS-001\n\nPlayStation 5 Console - Standard Edition\nModel: CFI-1215A01, UPC: 711719123456\nProduct Code: SONY-PS5-STD-001, Console Code: CONS-PS5-STD-001\nIncluded: Console, DualSense controller, cables, Bundle Code: BUN-PS5-STD-001\nStorage: 825GB SSD, Storage Code: STOR-825GB-SSD-001\nPrice: $499.99, Bundle Price: $699.99 (with 2 games, Bundle ID: BUN-PS5-GAME2-001)\nAvailability: Limited stock, Wait List: WAIT-PS5-001\nSerial Number Range: PS52024000001-PS52024999999\nWarranty: 1 year, Warranty Code: WAR-SONY-CONS-1Y-001\n\nHOME IMPROVEMENT\n\nHoneywell Lyric T5 Wi-Fi Programmable Thermostat\nModel: RCHT8610WF2006/W, Product Code: HON-LYRIC-T5-001\nUPC: 085267123456, SKU: THERMO-LYRIC-T5-001\nWorks with: Alexa, Google Assistant, Apple HomeKit, Compatibility Code: COMP-SMART-HOME-001\nInstallation: Professional recommended, Install Code: INST-THERMO-001\nPrice: $149.99, Rebate Available: $50 (Utility Company: UTIL-REBATE-001)\nEnergy Star Certified: ES-CERTIFIED-001, Efficiency Code: EFF-THERMO-001\nWarranty: 5 years, Warranty Code: WAR-HONEYWELL-5Y-001\nWiring: C-wire required, Wiring Code: WIRE-C-REQ-001\n\nBenjamin Moore Regal Select Interior Paint - Eggshell Finish\nProduct Number: N318, Color Code: HC-172 (Revere Pewter)\nUPC: 072962123456, SKU: BM-REGAL-EGG-HC172-001\nCoverage: 400-450 sq ft per gallon, Coverage Code: COV-400SQF-001\nVOC: <50 g/L, VOC Code: VOC-LOW-001\nPrice per gallon: $84.99, Contractor Price: $67.99 (Contractor ID: CONT-PAINT-001)\nSheen Level: 20-25%, Sheen Code: SHEEN-EGGSHELL-001\nBase: White, Tint Formula: TINT-HC172-001\nLot Number: BM24A001, Mix Date: Valid for 1 year, Mix Code: MIX-2024-001\n\nGARDEN & OUTDOOR\n\nBig Green Egg Large Ceramic Kamado Grill\nModel: LHDFCE, Product Code: BGE-LARGE-COMP-001\nUPC: 665719123456, SKU: GRILL-BGE-LARGE-001\nCooking Surface: 314 sq inches, Surface Code: SURF-314SQ-001\nTemperature Range: 200°F - 750°F+, Temp Code: TEMP-200-750-001\nPrice: $1,099.00, Package Deal: $1,399.00 (with accessories, Package ID: PKG-BGE-ACC-001)\nWarranty: Lifetime on ceramic, Limited on metal parts, Warranty Code: WAR-BGE-LIFE-001\nAccessories Available: Nest, ConvEGGtor, Plate Setter, Accessory Code: ACC-BGE-001\nAssembly: Minimal required, Assembly Code: ASM-MINIMAL-001\n\nEND OF CATALOG\n===================\nTotal SKUs: 247 active products\nCatalog Version: CAT-2024-WINTER-V1.2\nLast Updated: December 15, 2024\nUpdate Code: UPD-2024-1215-001\nDatabase Reference: DB-PROD-CAT-001\n\n"
+}

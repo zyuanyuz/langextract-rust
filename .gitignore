@@ -1,2 +1,5 @@
 target/
 .env
+raw_outputs/
+output/
+flattened_output/

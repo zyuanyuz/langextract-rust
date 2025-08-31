@@ -1,0 +1,31 @@
+# Multi-Pass Extraction Demo Configuration
+# This demonstrates improved recall through multiple extraction rounds
+
+# Model configuration
+model: "mistral"
+provider: "ollama"
+model_url: "http://localhost:11434"
+
+# Alternative for better multipass performance:
+# model: "gpt-4o-mini"
+# provider: "openai"
+
+# Processing configuration optimized for multipass extraction
+temperature: 0.4        # Higher temperature for diverse passes
+max_char_buffer: 8000   # Larger chunks for complex text
+max_workers: 6          # Parallel processing
+batch_size: 4           # Moderate batch size for stability
+extraction_passes: 3    # Multiple passes for better recall
+
+# Multipass settings - the key feature being demonstrated
+multipass: true                     # Enable multipass extraction
+multipass_min_extractions: 3       # Minimum extractions per chunk to avoid reprocessing
+multipass_quality_threshold: 0.7   # Quality threshold for keeping extractions
+
+# Output options
+format: "json"
+debug: true
+show_intervals: true
+
+# Additional context to improve extraction across passes
+additional_context: "This is a complex academic/research text with many named entities including people, organizations, locations, dates, funding amounts, and technical terms. Extract comprehensively across multiple categories."

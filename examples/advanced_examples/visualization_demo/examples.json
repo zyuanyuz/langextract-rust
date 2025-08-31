@@ -1,0 +1,53 @@
+[
+  {
+    "text": "John Smith, age 25, works at TechCorp and earns $75,000 annually",
+    "extractions": [
+      {
+        "extraction_class": "person",
+        "extraction_text": "John Smith"
+      },
+      {
+        "extraction_class": "age", 
+        "extraction_text": "25"
+      },
+      {
+        "extraction_class": "company",
+        "extraction_text": "TechCorp"
+      },
+      {
+        "extraction_class": "salary",
+        "extraction_text": "$75,000"
+      }
+    ]
+  },
+  {
+    "text": "Contact Sarah Johnson at sarah.j@company.com or visit our office in New York, NY",
+    "extractions": [
+      {
+        "extraction_class": "person",
+        "extraction_text": "Sarah Johnson"
+      },
+      {
+        "extraction_class": "email",
+        "extraction_text": "sarah.j@company.com"
+      },
+      {
+        "extraction_class": "location",
+        "extraction_text": "New York, NY"
+      }
+    ]
+  },
+  {
+    "text": "The product costs $299.99 and is available online at https://shop.example.com",
+    "extractions": [
+      {
+        "extraction_class": "price",
+        "extraction_text": "$299.99"
+      },
+      {
+        "extraction_class": "url",
+        "extraction_text": "https://shop.example.com"
+      }
+    ]
+  }
+]

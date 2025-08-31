@@ -1,0 +1,85 @@
+[
+  {
+    "text": "Product XYZ-123 costs $29.99 and weighs 2.5 kg with a 95% efficiency rating",
+    "extractions": [
+      {
+        "extraction_class": "product_code",
+        "extraction_text": "XYZ-123",
+        "attributes": {
+          "value_type": ["alphanumeric", "product_id"],
+          "format": "uppercase_with_hyphens",
+          "max_length": 10
+        }
+      },
+      {
+        "extraction_class": "price",
+        "extraction_text": "$29.99",
+        "attributes": {
+          "value_type": ["currency", "dollars", "cents"],
+          "format": "currency_with_symbol",
+          "currency": "USD",
+          "decimal_places": 2
+        }
+      },
+      {
+        "extraction_class": "weight",
+        "extraction_text": "2.5 kg",
+        "attributes": {
+          "value_type": ["numeric", "weight", "measurement"],
+          "format": "number_with_unit",
+          "unit": "kg",
+          "min_value": 0
+        }
+      },
+      {
+        "extraction_class": "efficiency",
+        "extraction_text": "95%",
+        "attributes": {
+          "value_type": ["percentage", "numeric"],
+          "format": "percentage_with_symbol",
+          "min_value": 0,
+          "max_value": 100
+        }
+      }
+    ]
+  },
+  {
+    "text": "Contact support at help@company.com or call (555) 123-4567 between 9:00 AM and 5:00 PM",
+    "extractions": [
+      {
+        "extraction_class": "email",
+        "extraction_text": "help@company.com",
+        "attributes": {
+          "value_type": ["email", "contact"],
+          "format": "email_address",
+          "validation": "email_format"
+        }
+      },
+      {
+        "extraction_class": "phone",
+        "extraction_text": "(555) 123-4567",
+        "attributes": {
+          "value_type": ["phone", "contact"],
+          "format": "us_phone_with_parens",
+          "validation": "phone_format"
+        }
+      },
+      {
+        "extraction_class": "time_start",
+        "extraction_text": "9:00 AM",
+        "attributes": {
+          "value_type": ["time", "schedule"],
+          "format": "12_hour_with_am_pm"
+        }
+      },
+      {
+        "extraction_class": "time_end",
+        "extraction_text": "5:00 PM",
+        "attributes": {
+          "value_type": ["time", "schedule"],
+          "format": "12_hour_with_am_pm"
+        }
+      }
+    ]
+  }
+]

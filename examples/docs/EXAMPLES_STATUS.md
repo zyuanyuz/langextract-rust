@@ -76,18 +76,18 @@ enable_multipass: false, // Single pass for cost efficiency
 
 ```bash
 # Basic functionality examples
-cargo run --example basic_examples/basic_usage
-cargo run --example basic_examples/alignment_demo
-cargo run --example basic_examples/validation_demo
+cargo run --example basic_usage
+cargo run --example alignment_demo
+cargo run --example validation_demo
 
 # Advanced features
-cargo run --example advanced_examples/multipass_demo
-cargo run --example advanced_examples/advanced_chunking_demo
-cargo run --example advanced_examples/visualization_demo
+cargo run --example multipass_demo
+cargo run --example advanced_chunking_demo
+cargo run --example visualization_demo
 
 # Specialized examples
-cargo run --example product_catalog/product_catalog_test
-cargo run --example pipeline/pipeline_demo
+cargo run --example product_catalog_test
+cargo run --example pipeline_demo
 ```
 
 ## 🎉 Summary

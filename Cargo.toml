@@ -1,6 +1,6 @@
 [package]
 name = "langextract-rust"
-version = "0.4.2"
+version = "0.4.3"
 edition = "2021"
 description = "A Rust library for extracting structured and grounded information from text using LLMs"
 license = "Apache-2.0"
@@ -83,3 +83,48 @@ required-features = ["cli"]
 [dev-dependencies]
 tokio-test = "0.4"
 tempfile = "3.0"
+
+# Example definitions for organized subfolder structure
+[[example]]
+name = "basic_usage"
+path = "examples/basic_examples/basic_usage.rs"
+
+[[example]]
+name = "alignment_demo"
+path = "examples/basic_examples/alignment_demo.rs"
+
+[[example]]
+name = "validation_demo"
+path = "examples/basic_examples/validation_demo.rs"
+
+[[example]]
+name = "multipass_demo"
+path = "examples/advanced_examples/multipass_demo.rs"
+
+[[example]]
+name = "advanced_chunking_demo"
+path = "examples/advanced_examples/advanced_chunking_demo.rs"
+
+[[example]]
+name = "visualization_demo"
+path = "examples/advanced_examples/visualization_demo.rs"
+
+[[example]]
+name = "product_catalog_test"
+path = "examples/product_catalog/product_catalog_test.rs"
+
+[[example]]
+name = "pipeline_demo"
+path = "examples/pipeline/pipeline_demo.rs"
+
+[[example]]
+name = "debug_test"
+path = "examples/pipeline/debug_test.rs"
+
+[[example]]
+name = "shall_extraction_test"
+path = "examples/pipeline/shall_extraction_test.rs"
+
+[[example]]
+name = "pipeline_with_visualization"
+path = "examples/pipeline/pipeline_with_visualization.rs"

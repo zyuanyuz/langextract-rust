@@ -1,0 +1,320 @@
+[
+  {
+    "text": "Apple iPhone 15 Pro - Model A3101, UPC: 194253123456, Starting at $999.00 (MSRP). Premium titanium construction with A17 Pro chip. SKU: APPLE-IP15-PRO-001, Product Code: APPLE-2024-002",
+    "extractions": [
+      {
+        "extraction_class": "product_name",
+        "extraction_text": "Apple iPhone 15 Pro",
+        "attributes": {
+          "value_type": ["text", "brand_name", "product_name"],
+          "max_length": 100,
+          "required": true
+        }
+      },
+      {
+        "extraction_class": "model",
+        "extraction_text": "A3101",
+        "attributes": {
+          "value_type": ["alphanumeric", "model_number", "identifier"],
+          "format": "alphanumeric",
+          "max_length": 20
+        }
+      },
+      {
+        "extraction_class": "sku",
+        "extraction_text": "APPLE-IP15-PRO-001",
+        "attributes": {
+          "value_type": ["alphanumeric", "sku", "inventory_code"],
+          "format": "uppercase_with_hyphens",
+          "max_length": 25,
+          "unique": true
+        }
+      },
+      {
+        "extraction_class": "product_code",
+        "extraction_text": "APPLE-2024-002",
+        "attributes": {
+          "value_type": ["alphanumeric", "product_code", "internal_id"],
+          "format": "brand-year-number",
+          "max_length": 20
+        }
+      },
+      {
+        "extraction_class": "upc",
+        "extraction_text": "194253123456",
+        "attributes": {
+          "value_type": ["numeric", "barcode", "upc"],
+          "format": "12_digits",
+          "length": 12,
+          "validation": "checksum"
+        }
+      },
+      {
+        "extraction_class": "price",
+        "extraction_text": "$999.00",
+        "attributes": {
+          "value_type": ["currency", "dollars", "cents", "price"],
+          "format": "currency_with_symbol",
+          "currency": "USD",
+          "decimal_places": 2
+        }
+      },
+      {
+        "extraction_class": "material",
+        "extraction_text": "titanium",
+        "attributes": {
+          "value_type": ["text", "material", "construction_material"],
+          "format": "lowercase",
+          "max_length": 50
+        }
+      },
+      {
+        "extraction_class": "chip",
+        "extraction_text": "A17 Pro",
+        "attributes": {
+          "value_type": ["text", "processor", "chip_name"],
+          "format": "alphanumeric_with_spaces",
+          "max_length": 30
+        }
+      }
+    ]
+  },
+  {
+    "text": "Samsung 65\" QLED 4K Smart TV - Model QN65Q70C, SKU: SAM-TV-65-4K-001, Price: $1,299.99, Was: $1,599.99 (Sale ID: SALE-2024-SPRING-001). Crystal UHD 4K resolution with Quantum HDR technology. Currently in stock.",
+    "extractions": [
+      {
+        "extraction_class": "product_name",
+        "extraction_text": "Samsung 65\" QLED 4K Smart TV",
+        "attributes": {
+          "value_type": ["text", "brand_name", "product_name"],
+          "max_length": 100,
+          "required": true
+        }
+      },
+      {
+        "extraction_class": "model",
+        "extraction_text": "QN65Q70C"
+      },
+      {
+        "extraction_class": "sku",
+        "extraction_text": "SAM-TV-65-4K-001"
+      },
+      {
+        "extraction_class": "price",
+        "extraction_text": "$1,299.99"
+      },
+      {
+        "extraction_class": "original_price",
+        "extraction_text": "$1,599.99",
+        "attributes": {
+          "value_type": ["currency", "dollars", "cents", "price"],
+          "format": "currency_with_symbol",
+          "currency": "USD",
+          "decimal_places": 2
+        }
+      },
+      {
+        "extraction_class": "sale_id",
+        "extraction_text": "SALE-2024-SPRING-001",
+        "attributes": {
+          "value_type": ["alphanumeric", "promotion_id", "sale_code"],
+          "format": "uppercase_with_hyphens",
+          "max_length": 25
+        }
+      },
+      {
+        "extraction_class": "resolution",
+        "extraction_text": "4K",
+        "attributes": {
+          "value_type": ["text", "resolution", "display_resolution"],
+          "format": "standard_resolution",
+          "max_length": 10
+        }
+      },
+      {
+        "extraction_class": "technology",
+        "extraction_text": "Quantum HDR",
+        "attributes": {
+          "value_type": ["text", "technology", "display_technology"],
+          "format": "title_case",
+          "max_length": 50
+        }
+      },
+      {
+        "extraction_class": "availability",
+        "extraction_text": "in stock",
+        "attributes": {
+          "value_type": ["text", "availability", "stock_status"],
+          "format": "lowercase",
+          "max_length": 20,
+          "enum_values": ["in stock", "out of stock", "backorder", "discontinued"]
+        }
+      }
+    ]
+  },
+  {
+    "text": "Pfizer Lipitor (Atorvastatin) 20mg Tablets, NDC: 0071-0155-23, Generic Name: Atorvastatin Calcium, Package Size: 90 tablets, Lot Number: LIP24A001, Expiration: 06/2026",
+    "extractions": [
+      {
+        "extraction_class": "product_name",
+        "extraction_text": "Pfizer Lipitor"
+      },
+      {
+        "extraction_class": "generic_name",
+        "extraction_text": "Atorvastatin",
+        "attributes": {
+          "value_type": ["text", "generic_name", "drug_name"],
+          "format": "title_case",
+          "max_length": 100
+        }
+      },
+      {
+        "extraction_class": "strength",
+        "extraction_text": "20mg",
+        "attributes": {
+          "value_type": ["text", "dosage", "strength"],
+          "format": "number_with_unit",
+          "unit": "mg",
+          "max_length": 20
+        }
+      },
+      {
+        "extraction_class": "ndc",
+        "extraction_text": "0071-0155-23",
+        "attributes": {
+          "value_type": ["numeric", "ndc", "drug_code"],
+          "format": "11_digits_with_hyphens",
+          "length": 11,
+          "validation": "fda_ndc_format"
+        }
+      },
+      {
+        "extraction_class": "package_size",
+        "extraction_text": "90 tablets",
+        "attributes": {
+          "value_type": ["text", "quantity", "package_size"],
+          "format": "number_with_unit",
+          "unit": "tablets",
+          "max_length": 30
+        }
+      },
+      {
+        "extraction_class": "lot_number",
+        "extraction_text": "LIP24A001",
+        "attributes": {
+          "value_type": ["alphanumeric", "lot_number", "batch_id"],
+          "format": "uppercase_alphanumeric",
+          "max_length": 20
+        }
+      },
+      {
+        "extraction_class": "expiration_date",
+        "extraction_text": "06/2026",
+        "attributes": {
+          "value_type": ["date", "expiration", "expiry"],
+          "format": "mm/yyyy",
+          "validation": "future_date"
+        }
+      }
+    ]
+  },
+  {
+    "text": "DeWalt 20V MAX Cordless Drill/Driver Kit, Model: DCD771C2, UPC: 885911234567, Price: $149.00, Contractor Price: $129.00, Warranty: 3 years",
+    "extractions": [
+      {
+        "extraction_class": "product_name",
+        "extraction_text": "DeWalt 20V MAX Cordless Drill/Driver Kit"
+      },
+      {
+        "extraction_class": "model",
+        "extraction_text": "DCD771C2"
+      },
+      {
+        "extraction_class": "upc",
+        "extraction_text": "885911234567"
+      },
+      {
+        "extraction_class": "price",
+        "extraction_text": "$149.00"
+      },
+      {
+        "extraction_class": "contractor_price",
+        "extraction_text": "$129.00",
+        "attributes": {
+          "value_type": ["currency", "dollars", "cents", "price"],
+          "format": "currency_with_symbol",
+          "currency": "USD",
+          "decimal_places": 2
+        }
+      },
+      {
+        "extraction_class": "warranty",
+        "extraction_text": "3 years",
+        "attributes": {
+          "value_type": ["text", "duration", "warranty_period"],
+          "format": "number_with_time_unit",
+          "unit": "years",
+          "max_length": 20
+        }
+      }
+    ]
+  },
+  {
+    "text": "Nike Air Max 270 - Men's Running Shoes, Style Code: AH8050-001, Size Range: 7-15, Price: $150.00, Color: Black/White, Release Date: 03/26/2018",
+    "extractions": [
+      {
+        "extraction_class": "product_name",
+        "extraction_text": "Nike Air Max 270"
+      },
+      {
+        "extraction_class": "category",
+        "extraction_text": "Men's Running Shoes",
+        "attributes": {
+          "value_type": ["text", "category", "product_category"],
+          "format": "title_case",
+          "max_length": 50
+        }
+      },
+      {
+        "extraction_class": "style_code",
+        "extraction_text": "AH8050-001",
+        "attributes": {
+          "value_type": ["alphanumeric", "style_code", "product_code"],
+          "format": "uppercase_with_hyphens",
+          "max_length": 15
+        }
+      },
+      {
+        "extraction_class": "size_range",
+        "extraction_text": "7-15",
+        "attributes": {
+          "value_type": ["text", "size_range", "shoe_sizes"],
+          "format": "range_with_hyphen",
+          "max_length": 10
+        }
+      },
+      {
+        "extraction_class": "price",
+        "extraction_text": "$150.00"
+      },
+      {
+        "extraction_class": "color",
+        "extraction_text": "Black/White",
+        "attributes": {
+          "value_type": ["text", "color", "colorway"],
+          "format": "title_case_with_slash",
+          "max_length": 30
+        }
+      },
+      {
+        "extraction_class": "release_date",
+        "extraction_text": "03/26/2018",
+        "attributes": {
+          "value_type": ["date", "release_date", "launch_date"],
+          "format": "mm/dd/yyyy",
+          "validation": "past_date"
+        }
+      }
+    ]
+  }
+]

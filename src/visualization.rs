@@ -1,6 +1,7 @@
 //! Visualization utilities for annotated documents.
 
 use crate::{data::AnnotatedDocument, exceptions::LangExtractResult};
+use crate::pipeline::PipelineResult;
 use serde_json::{json, Value};
 use std::collections::HashMap;
 use crate::Extraction;
@@ -37,6 +38,14 @@ pub struct ExportConfig {
     pub custom_css: Option<String>,
     /// Title for the export
     pub title: Option<String>,
+    /// Aggregate highlights across pipeline steps (pipeline HTML export)
+    pub aggregate_pipeline_highlights: bool,
+    /// Expand nested JSON extraction_text into atomic extractions when possible
+    pub expand_nested_json: bool,
+    /// Allow overlapping highlights (layered rendering)
+    pub allow_overlapping_highlights: bool,
+    /// Show legend for pipeline steps/colors
+    pub show_pipeline_legend: bool,
 }
 
 impl Default for ExportConfig {
@@ -49,6 +58,10 @@ impl Default for ExportConfig {
             include_statistics: true,
             custom_css: None,
             title: None,
+            aggregate_pipeline_highlights: false,
+            expand_nested_json: false,
+            allow_overlapping_highlights: false,
+            show_pipeline_legend: true,
         }
     }
 }
@@ -65,6 +78,466 @@ pub fn export_document(
         ExportFormat::Json => export_json(annotated_document, config),
         ExportFormat::Csv => export_csv(annotated_document, config),
     }
+}
+
+/// Export a pipeline result as rich HTML with layered highlights per step
+pub fn export_pipeline_html(
+    pipeline_result: &PipelineResult,
+    original_text: &str,
+    config: &ExportConfig,
+) -> LangExtractResult<String> {
+    let title = config.title.as_deref().unwrap_or("LangExtract Pipeline Results");
+
+    // Build layered spans from pipeline results, remapping to absolute intervals if needed
+    let mut spans: Vec<LayeredSpan> = build_layered_spans(pipeline_result, original_text, config.expand_nested_json);
+    spans.sort_by_key(|s| (s.start, s.end));
+
+    let mut html = String::new();
+    html.push_str("<!DOCTYPE html>\n");
+    html.push_str("<html lang=\"en\">\n");
+    html.push_str("<head>\n");
+    html.push_str("    <meta charset=\"UTF-8\">\n");
+    html.push_str("    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n");
+    html.push_str(&format!("    <title>{}</title>\n", title));
+    html.push_str("    <style>\n");
+    html.push_str("        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 1200px; margin: 0 auto; padding: 20px; background: #f8fafc; color: #334155; }\n");
+    html.push_str("        .container { background: white; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); overflow: hidden; }\n");
+    html.push_str("        .header { background: linear-gradient(135deg, #0ea5e9 0%, #6366f1 100%); color: white; padding: 30px; text-align: center; }\n");
+    html.push_str("        .header h1 { margin: 0; font-size: 2.2em; font-weight: 400; }\n");
+    html.push_str("        .content { padding: 30px; }\n");
+    html.push_str("        .section { margin-bottom: 32px; }\n");
+    html.push_str("        .section h2 { color: #1e293b; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 16px; }\n");
+    html.push_str("        .document-text { background: #f1f5f9; border-radius: 8px; padding: 16px; font-family: 'Monaco', 'Menlo', monospace; line-height: 1.6; white-space: pre-wrap; position: relative; }\n");
+    html.push_str("        .legend { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }\n");
+    html.push_str("        .legend-item { display: inline-flex; align-items: center; gap: 8px; padding: 6px 10px; border: 1px solid #e2e8f0; border-radius: 6px; background: #fff; }\n");
+    html.push_str("        .badge { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }\n");
+    html.push_str("        .extraction-highlight { border-radius: 3px; padding: 1px 2px; cursor: pointer; }\n");
+    html.push_str("        .step-0 { background: rgba(59, 130, 246, 0.2); border: 1px solid rgba(59, 130, 246, 0.4); }\n");
+    html.push_str("        .step-1 { background: rgba(16, 185, 129, 0.2); border: 1px solid rgba(16, 185, 129, 0.4); }\n");
+    html.push_str("        .step-2 { background: rgba(234, 179, 8, 0.2); border: 1px solid rgba(234, 179, 8, 0.5); }\n");
+    html.push_str("        .step-3 { background: rgba(244, 63, 94, 0.2); border: 1px solid rgba(244, 63, 94, 0.4); }\n");
+    html.push_str("        .step-4 { background: rgba(99, 102, 241, 0.2); border: 1px solid rgba(99, 102, 241, 0.4); }\n");
+    html.push_str("    </style>\n");
+    html.push_str("</head>\n");
+    html.push_str("<body>\n");
+    html.push_str("    <div class=\"container\">\n");
+    html.push_str("        <div class=\"header\">\n");
+    html.push_str(&format!("            <h1>{}</h1>\n", title));
+    html.push_str("        </div>\n");
+    html.push_str("        <div class=\"content\">\n");
+    html.push_str("            <div class=\"section\">\n");
+    html.push_str("                <h2>📄 Document Text</h2>\n");
+    if config.show_pipeline_legend {
+        html.push_str(&build_legend_html(pipeline_result));
+    }
+    html.push_str("                <div class=\"document-text\">");
+    html.push_str(&highlight_text_html_with_layers(original_text, &spans, config.allow_overlapping_highlights)?);
+    html.push_str("</div>\n");
+    html.push_str("            </div>\n");
+    html.push_str("            <div class=\"section\">\n");
+    html.push_str("                <h2>🎯 Extractions by Step</h2>\n");
+    html.push_str("                <div>\n");
+    html.push_str(&build_extractions_list_html(&spans));
+    html.push_str("                </div>\n");
+    html.push_str("            </div>\n");
+    html.push_str("        </div>\n");
+    html.push_str("    </div>\n");
+    html.push_str("</body>\n");
+    html.push_str("</html>\n");
+
+    Ok(html)
+}
+
+/// Export a flattened JSON view of pipeline results (one item per atomic extraction)
+pub fn export_pipeline_flattened_json(
+    pipeline_result: &PipelineResult,
+    original_text: &str,
+    expand_nested_json: bool,
+) -> LangExtractResult<String> {
+    // Helper to push one flattened item
+    fn push_item(
+        items: &mut Vec<Value>,
+        class_name: &str,
+        text: &str,
+        step_id: &str,
+        step_name: &str,
+        start: Option<usize>,
+        end: Option<usize>,
+        parent_attrs: Option<&std::collections::HashMap<String, Value>>,
+    ) {
+        let mut obj = serde_json::Map::new();
+        obj.insert("extraction_class".to_string(), Value::String(class_name.to_string()));
+        obj.insert("extraction_text".to_string(), Value::String(text.to_string()));
+        obj.insert("step_id".to_string(), Value::String(step_id.to_string()));
+        obj.insert("step_name".to_string(), Value::String(step_name.to_string()));
+        if let (Some(s), Some(e)) = (start, end) {
+            let mut ci = serde_json::Map::new();
+            ci.insert("start_pos".to_string(), Value::Number(serde_json::Number::from(s as u64)));
+            ci.insert("end_pos".to_string(), Value::Number(serde_json::Number::from(e as u64)));
+            obj.insert("char_interval".to_string(), Value::Object(ci));
+        }
+        if let Some(attrs) = parent_attrs {
+            if let Some(ps) = attrs.get("parent_step_id") {
+                obj.insert("parent_step_id".to_string(), ps.clone());
+            }
+            if let Some(ps) = attrs.get("parent_start") {
+                obj.insert("parent_start".to_string(), ps.clone());
+            }
+            if let Some(pe) = attrs.get("parent_end") {
+                obj.insert("parent_end".to_string(), pe.clone());
+            }
+        }
+        items.push(Value::Object(obj));
+    }
+
+    let mut items: Vec<Value> = Vec::new();
+
+    // Map step id to name
+    let mut step_id_to_name: std::collections::HashMap<&str, &str> = std::collections::HashMap::new();
+    for s in &pipeline_result.config.steps {
+        step_id_to_name.insert(s.id.as_str(), s.name.as_str());
+    }
+
+    for step_res in &pipeline_result.step_results {
+        let step_name = step_id_to_name.get(step_res.step_id.as_str()).copied().unwrap_or("");
+        for e in &step_res.extractions {
+            // Determine absolute positions; fall back to exact match
+            let (mut start, mut end) = (e.char_interval.as_ref().and_then(|ci| ci.start_pos), e.char_interval.as_ref().and_then(|ci| ci.end_pos));
+            if start.is_none() || end.is_none() {
+                if let Some(found) = original_text.find(&e.extraction_text) {
+                    start = Some(found);
+                    end = Some(found + e.extraction_text.len());
+                }
+            }
+
+            // Push the main extraction
+            push_item(
+                &mut items,
+                &e.extraction_class,
+                &e.extraction_text,
+                &step_res.step_id,
+                step_name,
+                start,
+                end,
+                e.attributes.as_ref(),
+            );
+
+            // Optionally expand nested JSON inside extraction_text
+            if expand_nested_json {
+                if let Ok(json_val) = serde_json::from_str::<Value>(&e.extraction_text) {
+                    // Depth-first walk and collect leaf strings
+                    fn collect(prefix: &str, val: &Value, out: &mut Vec<(String, String)>) {
+                        match val {
+                            Value::String(s) => out.push((prefix.to_string(), s.clone())),
+                            Value::Object(map) => {
+                                for (k, v) in map {
+                                    let p = if prefix.is_empty() { k.clone() } else { format!("{}:{}", prefix, k) };
+                                    collect(&p, v, out);
+                                }
+                            }
+                            Value::Array(arr) => {
+                                for (i, v) in arr.iter().enumerate() {
+                                    let p = if prefix.is_empty() { format!("[{}]", i) } else { format!("{}:[{}]", prefix, i) };
+                                    collect(&p, v, out);
+                                }
+                            }
+                            _ => {}
+                        }
+                    }
+
+                    let mut leafs: Vec<(String, String)> = Vec::new();
+                    collect(&e.extraction_class, &json_val, &mut leafs);
+
+                    for (cls, s) in leafs {
+                        if s.is_empty() { continue; }
+                        let (mut ls, mut le) = (None, None);
+                        if let Some(found) = original_text.find(&s) {
+                            ls = Some(found);
+                            le = Some(found + s.len());
+                        }
+                        push_item(
+                            &mut items,
+                            &cls,
+                            &s,
+                            &step_res.step_id,
+                            step_name,
+                            ls,
+                            le,
+                            e.attributes.as_ref(),
+                        );
+                    }
+                }
+            }
+        }
+    }
+
+    let mut root = serde_json::Map::new();
+    root.insert("extractions".to_string(), Value::Array(items));
+    let mut meta = serde_json::Map::new();
+    meta.insert("steps".to_string(), Value::Number(serde_json::Number::from(pipeline_result.config.steps.len() as u64)));
+    meta.insert("total_time_ms".to_string(), Value::Number(serde_json::Number::from(pipeline_result.total_time_ms)));
+    meta.insert("expand_nested_json".to_string(), Value::Bool(expand_nested_json));
+    root.insert("metadata".to_string(), Value::Object(meta));
+
+    Ok(serde_json::to_string_pretty(&Value::Object(root))?)
+}
+
+#[derive(Debug, Clone)]
+struct LayeredSpan {
+    start: usize,
+    end: usize,
+    class_name: String,
+    text: String,
+    step_index: usize,
+    parent_step_id: Option<String>,
+    parent_class: Option<String>,
+    parent_text: Option<String>,
+}
+
+fn build_layered_spans(pipeline_result: &PipelineResult, original_text: &str, expand_nested_json: bool) -> Vec<LayeredSpan> {
+    // Map step_id to step index for stable coloring
+    let mut step_id_to_index: std::collections::HashMap<&str, usize> = std::collections::HashMap::new();
+    for (i, s) in pipeline_result.config.steps.iter().enumerate() {
+        step_id_to_index.insert(s.id.as_str(), i);
+    }
+
+    let mut spans = Vec::new();
+    for step_res in &pipeline_result.step_results {
+        let step_index = *step_id_to_index.get(step_res.step_id.as_str()).unwrap_or(&0);
+        for e in &step_res.extractions {
+            let mut added = false;
+            if let Some(interval) = &e.char_interval {
+                if let (Some(start), Some(end)) = (interval.start_pos, interval.end_pos) {
+                    if start < end && end <= original_text.len() {
+                        spans.push(LayeredSpan {
+                            start,
+                            end,
+                            class_name: e.extraction_class.clone(),
+                            text: e.extraction_text.clone(),
+                            step_index,
+                            parent_step_id: e.attributes.as_ref().and_then(|m| m.get("parent_step_id")).and_then(|v| v.as_str()).map(|s| s.to_string()),
+                            parent_class: e.attributes.as_ref().and_then(|m| m.get("parent_class")).and_then(|v| v.as_str()).map(|s| s.to_string()),
+                            parent_text: e.attributes.as_ref().and_then(|m| m.get("parent_text")).and_then(|v| v.as_str()).map(|s| s.to_string()),
+                        });
+                        added = true;
+                    }
+                }
+            }
+            if !added {
+                // Attempt exact match search in original text
+                if let Some(found) = original_text.find(&e.extraction_text) {
+                    let start = found;
+                    let end = start + e.extraction_text.len();
+                    if end <= original_text.len() {
+                        spans.push(LayeredSpan {
+                            start,
+                            end,
+                            class_name: e.extraction_class.clone(),
+                            text: e.extraction_text.clone(),
+                            step_index,
+                            parent_step_id: e.attributes.as_ref().and_then(|m| m.get("parent_step_id")).and_then(|v| v.as_str()).map(|s| s.to_string()),
+                            parent_class: e.attributes.as_ref().and_then(|m| m.get("parent_class")).and_then(|v| v.as_str()).map(|s| s.to_string()),
+                            parent_text: e.attributes.as_ref().and_then(|m| m.get("parent_text")).and_then(|v| v.as_str()).map(|s| s.to_string()),
+                        });
+                    }
+                }
+            }
+
+            // Optional nested JSON expansion: create child spans for string values found in the original text
+            if expand_nested_json {
+                if let Ok(json_val) = serde_json::from_str::<Value>(&e.extraction_text) {
+                    // Collect (class_name, text) pairs
+                    fn collect_strings(prefix: &str, val: &Value, out: &mut Vec<(String, String)>) {
+                        match val {
+                            Value::String(s) => {
+                                out.push((prefix.to_string(), s.clone()));
+                            }
+                            Value::Object(map) => {
+                                for (k, v) in map {
+                                    let new_prefix = if prefix.is_empty() { k.clone() } else { format!("{}:{}", prefix, k) };
+                                    collect_strings(&new_prefix, v, out);
+                                }
+                            }
+                            Value::Array(arr) => {
+                                for (i, v) in arr.iter().enumerate() {
+                                    let new_prefix = if prefix.is_empty() { format!("[{}]", i) } else { format!("{}:[{}]", prefix, i) };
+                                    collect_strings(&new_prefix, v, out);
+                                }
+                            }
+                            _ => {}
+                        }
+                    }
+
+                    let mut pairs: Vec<(String, String)> = Vec::new();
+                    collect_strings(&e.extraction_class, &json_val, &mut pairs);
+
+                    let parent_step_id = e.attributes.as_ref().and_then(|m| m.get("parent_step_id")).and_then(|v| v.as_str()).map(|s| s.to_string());
+
+                    for (class_name, s) in pairs {
+                        if !s.is_empty() {
+                            if let Some(found) = original_text.find(&s) {
+                                let start = found;
+                                let end = start + s.len();
+                                if end <= original_text.len() {
+                                    spans.push(LayeredSpan {
+                                        start,
+                                        end,
+                                        class_name: class_name.clone(),
+                                        text: s.clone(),
+                                        step_index,
+                                        parent_step_id: parent_step_id.clone(),
+                                        parent_class: e.attributes.as_ref().and_then(|m| m.get("parent_class")).and_then(|v| v.as_str()).map(|s| s.to_string()),
+                                        parent_text: e.attributes.as_ref().and_then(|m| m.get("parent_text")).and_then(|v| v.as_str()).map(|s| s.to_string()),
+                                    });
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    spans
+}
+
+fn build_legend_html(pipeline_result: &PipelineResult) -> String {
+    let mut step_id_to_index: std::collections::HashMap<&str, usize> = std::collections::HashMap::new();
+    for (i, s) in pipeline_result.config.steps.iter().enumerate() {
+        step_id_to_index.insert(s.id.as_str(), i);
+    }
+    let mut items = String::new();
+    for step in &pipeline_result.config.steps {
+        let idx = *step_id_to_index.get(step.id.as_str()).unwrap_or(&0);
+        items.push_str(&format!(r#"<span class="legend-item"><span class="badge step-{}"></span>Step {}: {}</span>"#, idx, idx + 1, html_escape(&step.name)));
+    }
+    format!(r#"<div class="legend">{}</div>"#, items)
+}
+
+fn build_extractions_list_html(spans: &[LayeredSpan]) -> String {
+    let mut grouped: std::collections::BTreeMap<usize, Vec<&LayeredSpan>> = std::collections::BTreeMap::new();
+    for s in spans {
+        grouped.entry(s.step_index).or_default().push(s);
+    }
+    let mut html = String::new();
+    for (step_idx, list) in grouped {
+        html.push_str(&format!(r#"<h3>Step {}</h3>"#, step_idx + 1));
+        html.push_str("<ul>");
+        for s in list {
+            let parent_info = match (&s.parent_class, &s.parent_text) {
+                (Some(pc), Some(pt)) if !pc.is_empty() && !pt.is_empty() => format!(" (parent: [{}] {})", html_escape(pc), html_escape(pt)),
+                _ => String::new(),
+            };
+            html.push_str(&format!(r#"<li><span class=\"step-{} extraction-highlight\">[{}] {}{}</span></li>"#, step_idx, html_escape(&s.class_name), html_escape(&s.text), parent_info));
+        }
+        html.push_str("</ul>");
+    }
+    html
+}
+
+/// Build HTML of text with layered spans. Currently uses non-overlapping simplification.
+fn highlight_text_html_with_layers(
+    text: &str,
+    spans: &[LayeredSpan],
+    allow_overlaps: bool,
+) -> LangExtractResult<String> {
+    if !allow_overlaps {
+        let mut intervals: Vec<(usize, usize, usize)> = spans
+            .iter()
+            .enumerate()
+            .filter_map(|(i, s)| if s.start < s.end && s.end <= text.len() { Some((s.start, s.end, i)) } else { None })
+            .collect();
+        intervals.sort_by_key(|(start, end, _)| (*start, *end));
+
+        let mut result = String::new();
+        let mut last_pos = 0usize;
+        let mut last_end = 0usize;
+        for (start, end, idx) in intervals {
+            if start < last_end { continue; }
+            let safe_start = find_char_boundary(text, start);
+            let safe_end = find_char_boundary(text, end);
+            if safe_start > last_pos {
+                result.push_str(&html_escape(&text[last_pos..safe_start]));
+            }
+            if safe_start < safe_end {
+                let s = &spans[idx];
+                let seg = &text[safe_start..safe_end];
+                result.push_str(&format!(
+                    r#"<span class="extraction-highlight step-{}" data-class="{}" data-text="{}" data-parent-class="{}">{}</span>"#,
+                    s.step_index,
+                    html_escape(&s.class_name),
+                    html_escape(&s.text),
+                    html_escape(s.parent_class.as_deref().unwrap_or("")),
+                    html_escape(seg)
+                ));
+                last_pos = safe_end;
+                last_end = safe_end;
+            }
+        }
+        if last_pos < text.len() {
+            result.push_str(&html_escape(&text[last_pos..]));
+        }
+        return Ok(result);
+    }
+
+    let mut events: Vec<(usize, bool, usize)> = Vec::new();
+    for (i, s) in spans.iter().enumerate() {
+        if s.start < s.end && s.end <= text.len() {
+            events.push((s.start, true, i));
+            events.push((s.end, false, i));
+        }
+    }
+    events.sort_by_key(|(pos, is_start, idx)| (*pos, !*is_start, spans[*idx].step_index));
+
+    let mut result = String::new();
+    let mut cursor = 0usize;
+    let mut open: Vec<usize> = Vec::new();
+
+    let mut push_plain = |from: usize, to: usize, out: &mut String| {
+        if to > from {
+            out.push_str(&html_escape(&text[from..to]));
+        }
+    };
+
+    for (pos, is_start, idx) in events {
+        let safe_pos = find_char_boundary(text, pos);
+        if is_start {
+            push_plain(cursor, safe_pos, &mut result);
+            let s = &spans[idx];
+            result.push_str(&format!(
+                r#"<span class="extraction-highlight step-{}" data-class="{}" data-text="{}" data-parent-class="{}">{}</span>"#,
+                s.step_index,
+                html_escape(&s.class_name),
+                html_escape(&s.text),
+                html_escape(s.parent_class.as_deref().unwrap_or("")),
+                html_escape(&text[cursor..safe_pos])
+            ));
+            open.push(idx);
+            cursor = safe_pos;
+        } else {
+            push_plain(cursor, safe_pos, &mut result);
+            cursor = safe_pos;
+            if let Some(pos_in_open) = open.iter().rposition(|&j| j == idx) {
+                for _ in pos_in_open..open.len() {
+                    result.push_str("</span>");
+                }
+                open.remove(pos_in_open);
+                for j in open.iter().copied() {
+                    let s = &spans[j];
+                    result.push_str(&format!(
+                        r#"<span class="extraction-highlight step-{}" data-class="{}" data-text="{}" data-parent-class="{}">{}</span>"#,
+                        s.step_index,
+                        html_escape(&s.class_name),
+                        html_escape(&s.text),
+                        html_escape(s.parent_class.as_deref().unwrap_or("")),
+                        html_escape(&text[cursor..safe_pos])
+                    ));
+                }
+            }
+        }
+    }
+    push_plain(cursor, text.len(), &mut result);
+    for _ in 0..open.len() { result.push_str("</span>"); }
+    Ok(result)
 }
 
 /// Visualize an annotated document (legacy function for backward compatibility)
@@ -792,6 +1265,8 @@ mod tests {
     use super::*;
     use crate::data::{AlignmentStatus, CharInterval, Extraction};
     use std::collections::HashMap;
+    use crate::pipeline::{PipelineConfig, PipelineStep, StepResult, PipelineResult};
+    use crate::ExtractConfig as LibExtractConfig;
 
     fn create_sample_document() -> AnnotatedDocument {
         let text = "John Smith works at TechCorp and earns $50,000.";
@@ -1123,5 +1598,255 @@ mod tests {
         assert_eq!(counts.get("person"), Some(&2));
         assert_eq!(counts.get("company"), Some(&1));
         assert_eq!(counts.len(), 2);
+    }
+
+    #[test]
+    fn test_export_pipeline_html_renders_layers() {
+        // Original text
+        let text = "The system shall process 100 transactions per second.";
+
+        // Step definitions
+        let steps = vec![
+            PipelineStep {
+                id: "s1".to_string(),
+                name: "Extract Requirements".to_string(),
+                description: "".to_string(),
+                examples: vec![],
+                prompt: "".to_string(),
+                output_field: "requirements".to_string(),
+                filter: None,
+                depends_on: vec![],
+            },
+            PipelineStep {
+                id: "s2".to_string(),
+                name: "Extract Values".to_string(),
+                description: "".to_string(),
+                examples: vec![],
+                prompt: "".to_string(),
+                output_field: "values".to_string(),
+                filter: None,
+                depends_on: vec!["s1".to_string()],
+            },
+        ];
+
+        let cfg = PipelineConfig {
+            name: "Test".to_string(),
+            description: "".to_string(),
+            version: "0.0.0".to_string(),
+            steps: steps.clone(),
+            global_config: LibExtractConfig::default(),
+            enable_parallel_execution: false,
+        };
+
+        // Compute positions
+        let parent_start = 0usize;
+        let parent_end = text.len();
+        let hundred_idx = text.find("100").unwrap();
+        let unit_idx = text.find("transactions per second").unwrap();
+
+        let step1_res = StepResult {
+            step_id: "s1".to_string(),
+            step_name: "Extract Requirements".to_string(),
+            extractions: vec![Extraction {
+                extraction_class: "requirement".to_string(),
+                extraction_text: text.to_string(),
+                char_interval: Some(CharInterval::new(Some(parent_start), Some(parent_end))),
+                alignment_status: Some(AlignmentStatus::MatchExact),
+                extraction_index: Some(0),
+                group_index: None,
+                description: None,
+                attributes: Some(HashMap::new()),
+                token_interval: None,
+            }],
+            processing_time_ms: 1,
+            input_count: 1,
+            success: true,
+            error_message: None,
+        };
+
+        let step2_res = StepResult {
+            step_id: "s2".to_string(),
+            step_name: "Extract Values".to_string(),
+            extractions: vec![
+                Extraction {
+                    extraction_class: "value".to_string(),
+                    extraction_text: "100".to_string(),
+                    char_interval: Some(CharInterval::new(Some(hundred_idx), Some(hundred_idx + 3))),
+                    alignment_status: Some(AlignmentStatus::MatchExact),
+                    extraction_index: Some(0),
+                    group_index: None,
+                    description: None,
+                    attributes: Some(HashMap::new()),
+                    token_interval: None,
+                },
+                Extraction {
+                    extraction_class: "unit".to_string(),
+                    extraction_text: "transactions per second".to_string(),
+                    char_interval: Some(CharInterval::new(Some(unit_idx), Some(unit_idx + "transactions per second".len()))),
+                    alignment_status: Some(AlignmentStatus::MatchExact),
+                    extraction_index: Some(1),
+                    group_index: None,
+                    description: None,
+                    attributes: Some(HashMap::new()),
+                    token_interval: None,
+                }
+            ],
+            processing_time_ms: 1,
+            input_count: 1,
+            success: true,
+            error_message: None,
+        };
+
+        let pr = PipelineResult {
+            config: cfg,
+            step_results: vec![step1_res, step2_res],
+            nested_output: serde_json::json!({}),
+            total_time_ms: 2,
+            success: true,
+            error_message: None,
+        };
+
+        let config = ExportConfig { format: ExportFormat::Html, ..Default::default() };
+        let html = export_pipeline_html(&pr, text, &config).unwrap();
+        assert!(html.contains("step-0"), "Should render step-0 (parent)");
+        assert!(html.contains("step-1"), "Should render step-1 (child)");
+        assert!(html.contains("100"));
+        assert!(html.contains("transactions per second"));
+    }
+
+    #[test]
+    fn test_export_pipeline_html_exact_match_fallback() {
+        let text = "System uptime must be 99.9% for availability.";
+
+        let steps = vec![
+            PipelineStep { id: "s1".to_string(), name: "Req".to_string(), description: "".to_string(), examples: vec![], prompt: "".to_string(), output_field: "req".to_string(), filter: None, depends_on: vec![] },
+            PipelineStep { id: "s2".to_string(), name: "Vals".to_string(), description: "".to_string(), examples: vec![], prompt: "".to_string(), output_field: "vals".to_string(), filter: None, depends_on: vec!["s1".to_string()] },
+        ];
+        let cfg = PipelineConfig { name: "T".to_string(), description: "".to_string(), version: "0".to_string(), steps, global_config: LibExtractConfig::default(), enable_parallel_execution: false };
+
+        let step1_res = StepResult {
+            step_id: "s1".to_string(),
+            step_name: "Req".to_string(),
+            extractions: vec![Extraction {
+                extraction_class: "requirement".to_string(),
+                extraction_text: text.to_string(),
+                char_interval: None, // Not strictly needed for this test
+                alignment_status: None,
+                extraction_index: None,
+                group_index: None,
+                description: None,
+                attributes: Some(HashMap::new()),
+                token_interval: None,
+            }],
+            processing_time_ms: 1,
+            input_count: 1,
+            success: true,
+            error_message: None,
+        };
+
+        let step2_res = StepResult {
+            step_id: "s2".to_string(),
+            step_name: "Vals".to_string(),
+            extractions: vec![Extraction {
+                extraction_class: "uptime".to_string(),
+                extraction_text: "99.9%".to_string(),
+                char_interval: None, // Force fallback
+                alignment_status: None,
+                extraction_index: None,
+                group_index: None,
+                description: None,
+                attributes: Some(HashMap::new()),
+                token_interval: None,
+            }],
+            processing_time_ms: 1,
+            input_count: 1,
+            success: true,
+            error_message: None,
+        };
+
+        let pr = PipelineResult { config: cfg, step_results: vec![step1_res, step2_res], nested_output: serde_json::json!({}), total_time_ms: 2, success: true, error_message: None };
+
+        let config = ExportConfig { format: ExportFormat::Html, ..Default::default() };
+        let html = export_pipeline_html(&pr, text, &config).unwrap();
+        assert!(html.contains("99.9%"), "Fallback should highlight exact match in original text");
+    }
+
+    #[test]
+    fn test_export_pipeline_html_overlap_rendering() {
+        // Overlapping child spans inside a parent requirement
+        let text = "The system shall support 10 users concurrently.";
+
+        let steps = vec![
+            PipelineStep { id: "s1".to_string(), name: "Req".to_string(), description: "".to_string(), examples: vec![], prompt: "".to_string(), output_field: "req".to_string(), filter: None, depends_on: vec![] },
+            PipelineStep { id: "s2".to_string(), name: "Vals".to_string(), description: "".to_string(), examples: vec![], prompt: "".to_string(), output_field: "vals".to_string(), filter: None, depends_on: vec!["s1".to_string()] },
+        ];
+        let cfg = PipelineConfig { name: "T".to_string(), description: "".to_string(), version: "0".to_string(), steps, global_config: LibExtractConfig::default(), enable_parallel_execution: false };
+
+        let parent_start = 0usize;
+        let parent_end = text.len();
+        let ten_idx = text.find("10").unwrap();
+        let users_idx = text.find("10 users").unwrap();
+
+        let step1_res = StepResult {
+            step_id: "s1".to_string(),
+            step_name: "Req".to_string(),
+            extractions: vec![Extraction {
+                extraction_class: "requirement".to_string(),
+                extraction_text: text.to_string(),
+                char_interval: Some(CharInterval::new(Some(parent_start), Some(parent_end))),
+                alignment_status: None,
+                extraction_index: None,
+                group_index: None,
+                description: None,
+                attributes: Some(HashMap::new()),
+                token_interval: None,
+            }],
+            processing_time_ms: 1,
+            input_count: 1,
+            success: true,
+            error_message: None,
+        };
+
+        let step2_res = StepResult {
+            step_id: "s2".to_string(),
+            step_name: "Vals".to_string(),
+            extractions: vec![
+                Extraction {
+                    extraction_class: "value".to_string(),
+                    extraction_text: "10".to_string(),
+                    char_interval: Some(CharInterval::new(Some(ten_idx), Some(ten_idx + 2))),
+                    alignment_status: None,
+                    extraction_index: None,
+                    group_index: None,
+                    description: None,
+                    attributes: Some(HashMap::new()),
+                    token_interval: None,
+                },
+                Extraction {
+                    extraction_class: "phrase".to_string(),
+                    extraction_text: "10 users".to_string(),
+                    char_interval: Some(CharInterval::new(Some(users_idx), Some(users_idx + "10 users".len()))),
+                    alignment_status: None,
+                    extraction_index: None,
+                    group_index: None,
+                    description: None,
+                    attributes: Some(HashMap::new()),
+                    token_interval: None,
+                },
+            ],
+            processing_time_ms: 1,
+            input_count: 1,
+            success: true,
+            error_message: None,
+        };
+
+        let pr = PipelineResult { config: cfg, step_results: vec![step1_res, step2_res], nested_output: serde_json::json!({}), total_time_ms: 2, success: true, error_message: None };
+
+        let mut config = ExportConfig { format: ExportFormat::Html, ..Default::default() };
+        config.allow_overlapping_highlights = true;
+        let html = export_pipeline_html(&pr, text, &config).unwrap();
+        // Should include both occurrences
+        assert!(html.contains("10"));
+        assert!(html.contains("10 users"));
     }
 }

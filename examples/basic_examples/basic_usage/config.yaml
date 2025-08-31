@@ -1,0 +1,32 @@
+# Basic Usage Configuration
+# This demonstrates simple person/profession extraction
+
+# Model configuration
+model: "mistral"
+provider: "ollama"
+model_url: "http://localhost:11434"
+
+# Alternative providers (uncomment as needed):
+# model: "gpt-4o-mini"
+# provider: "openai"
+# api_key: "${OPENAI_API_KEY}"
+
+# model: "gemini-2.5-flash"
+# provider: "custom"
+# model_url: "https://api.google.com/v1"
+# api_key: "${GEMINI_API_KEY}"
+
+# Processing configuration
+temperature: 0.3
+max_char_buffer: 1000
+max_workers: 4
+batch_size: 10
+extraction_passes: 1
+
+# Output options
+format: "json"
+debug: true
+show_intervals: true
+
+# Multipass settings (disabled for basic example)
+multipass: false

@@ -1,0 +1,27 @@
+# Pipeline Demo Configuration
+# This demonstrates the pipeline processing system
+
+# Global configuration that applies to all pipeline steps
+global_config:
+  model: "mistral"
+  provider: "ollama"
+  model_url: "http://localhost:11434"
+  
+  # Alternative provider (uncomment to use):
+  # model: "gpt-4o-mini"  
+  # provider: "openai"
+  
+  # Processing parameters
+  temperature: 0.3
+  max_char_buffer: 2000
+  max_workers: 6
+  batch_size: 4
+  extraction_passes: 1
+  
+  # Output options
+  format: "json"
+  debug: true
+  show_intervals: false  # Simplified for pipeline demo
+  
+  # Multipass disabled for cleaner pipeline demonstration
+  multipass: false

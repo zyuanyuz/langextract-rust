@@ -1,0 +1,35 @@
+# Visualization Demo Configuration
+# This demonstrates rich export and visualization features
+
+# Model configuration
+model: "mistral"
+provider: "ollama"
+model_url: "http://localhost:11434"
+
+# Processing configuration optimized for visualization
+temperature: 0.3        # Consistent results for clean visualization
+max_char_buffer: 4000   # Standard chunk size
+max_workers: 6          # Moderate parallelism
+batch_size: 4           # Standard batch processing
+extraction_passes: 1    # Single pass for clean demo
+
+# Output options - key for visualization
+format: "json"
+debug: true
+show_intervals: true    # Essential for highlighting visualizations
+
+# Export settings (these control the visualization features)
+export_formats:
+  - html      # Interactive web visualization
+  - markdown  # Markdown with highlighting
+  - csv       # Structured data export
+  - json      # Raw data export
+
+# Visualization options
+highlight_extractions: true
+include_statistics: true
+show_char_intervals: true
+custom_styling: true
+
+# Multipass disabled for cleaner visualization
+multipass: false

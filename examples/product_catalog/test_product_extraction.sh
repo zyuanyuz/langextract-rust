@@ -48,7 +48,8 @@ echo "   🔧 Tool specifications and warranties"
 echo ""
 
 echo "🔄 Starting product extraction test..."
-cargo run --example product_catalog_test
+echo "   Using new CLI-based approach..."
+./run.sh
 
 echo ""
 echo "🎉 Product extraction test completed!"

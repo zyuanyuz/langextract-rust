@@ -1,0 +1,36 @@
+[
+  {
+    "text": "The conference will be held on March 15, 2024 in San Francisco, California at 2:00 PM PST",
+    "extractions": [
+      {
+        "extraction_class": "date",
+        "extraction_text": "March 15, 2024"
+      },
+      {
+        "extraction_class": "location",
+        "extraction_text": "San Francisco, California"
+      },
+      {
+        "extraction_class": "time",
+        "extraction_text": "2:00 PM PST"
+      }
+    ]
+  },
+  {
+    "text": "Contact Dr. Emily Johnson at emily.johnson@university.edu or call (555) 123-4567",
+    "extractions": [
+      {
+        "extraction_class": "person",
+        "extraction_text": "Dr. Emily Johnson"
+      },
+      {
+        "extraction_class": "email",
+        "extraction_text": "emily.johnson@university.edu"
+      },
+      {
+        "extraction_class": "phone",
+        "extraction_text": "(555) 123-4567"
+      }
+    ]
+  }
+]

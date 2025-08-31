@@ -1,0 +1,31 @@
+# Product Catalog Configuration
+# Optimized for extracting product information from catalogs
+
+# Model configuration
+model: "mistral"
+provider: "ollama"
+model_url: "http://localhost:11434"
+
+# Alternative providers for better product extraction:
+# model: "gpt-5-nano"
+# provider: "open-ai"
+
+# Processing configuration optimized for product catalogs
+temperature: 0.3        # Lower temperature for consistent product data
+max_char_buffer: 8000   # Larger chunks for product descriptions
+max_workers: 8          # High parallelism for catalog processing
+batch_size: 6           # Optimized batch size for throughput
+extraction_passes: 1    # Single pass (can be combined with multipass)
+
+# Output options
+format: "json"
+debug: true
+show_intervals: true
+
+# Multipass can improve product recall
+multipass: false        # Disabled for this demo, but can be enabled
+multipass_min_extractions: 5
+multipass_quality_threshold: 0.8
+
+# Additional context specific to product catalogs
+additional_context: "This is a product catalog with detailed product information including names, models, SKUs, prices, codes, and specifications. Extract detailed product identifiers, pricing, and technical details accurately."

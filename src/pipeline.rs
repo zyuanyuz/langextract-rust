@@ -4,12 +4,13 @@
 //! multiple extraction steps, creating nested hierarchical structures from text.
 
 use crate::{
-    data::{ExampleData, Extraction},
+    data::{ExampleData, Extraction, CharInterval},
     exceptions::{LangExtractError, LangExtractResult},
     extract, ExtractConfig,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use futures::future::join_all;
 
 /// A single step in a processing pipeline
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -69,6 +70,10 @@ pub struct PipelineConfig {
 
     /// Global configuration that applies to all steps
     pub global_config: ExtractConfig,
+
+    /// Enable parallel execution of independent steps (default: false)
+    #[serde(default)]
+    pub enable_parallel_execution: bool,
 }
 
 /// Results from a single pipeline step
@@ -123,6 +128,23 @@ pub struct PipelineExecutor {
     config: PipelineConfig,
 }
 
+/// Internal representation of a step input item including mapping context
+#[derive(Debug, Clone)]
+struct StepInputItem {
+    /// The text to process for this step (original document or parent extraction text)
+    text: String,
+    /// Absolute start offset of this text within the original document, if known
+    parent_start: Option<usize>,
+    /// Absolute end offset of this text within the original document, if known
+    parent_end: Option<usize>,
+    /// The step id of the parent that produced this text, if any
+    parent_step_id: Option<String>,
+    /// The parent extraction class (from step-1)
+    parent_class: Option<String>,
+    /// The parent extraction text (from step-1)
+    parent_text: Option<String>,
+}
+
 impl PipelineExecutor {
     /// Create a new pipeline executor
     pub fn new(config: PipelineConfig) -> Self {
@@ -146,7 +168,22 @@ impl PipelineExecutor {
 
         println!("🚀 Starting pipeline execution: {}", self.config.name);
         println!("📝 Description: {}", self.config.description);
+        
+        if self.config.enable_parallel_execution {
+            println!("⚡ Parallel execution enabled - independent steps will run concurrently");
+        } else {
+            println!("🔄 Sequential execution - steps will run one after another");
+        }
 
+        if self.config.enable_parallel_execution {
+            self.execute_parallel(input_text, start_time).await
+        } else {
+            self.execute_sequential(input_text, start_time).await
+        }
+    }
+
+    /// Execute pipeline sequentially (original behavior)
+    async fn execute_sequential(&self, input_text: &str, start_time: std::time::Instant) -> LangExtractResult<PipelineResult> {
         let mut step_results = Vec::new();
         let mut context_data = HashMap::new();
 
@@ -186,6 +223,78 @@ impl PipelineExecutor {
         })
     }
 
+    /// Execute pipeline with parallel execution of independent steps
+    async fn execute_parallel(&self, input_text: &str, start_time: std::time::Instant) -> LangExtractResult<PipelineResult> {
+        let mut all_step_results = Vec::new();
+        let mut context_data = HashMap::new();
+        
+        // Group steps by dependency level
+        let execution_waves = self.resolve_execution_waves()?;
+        
+        for (wave_index, wave_steps) in execution_waves.iter().enumerate() {
+            println!("🌊 Executing wave {} with {} steps", wave_index + 1, wave_steps.len());
+            
+            if wave_steps.len() == 1 {
+                // Single step - execute normally
+                let step_id = &wave_steps[0];
+                let step_result = self.execute_step(step_id, input_text, &context_data).await?;
+                
+                if step_result.success {
+                    context_data.insert(step_id.clone(), step_result.extractions.clone());
+                    all_step_results.push(step_result);
+                } else {
+                    return Err(LangExtractError::configuration(format!(
+                        "Step '{}' failed: {}",
+                        step_id,
+                        step_result.error_message.unwrap_or("Unknown error".to_string())
+                    )));
+                }
+            } else {
+                // Multiple independent steps - execute in parallel
+                println!("⚡ Running {} steps in parallel", wave_steps.len());
+                
+                let parallel_futures: Vec<_> = wave_steps.iter()
+                    .map(|step_id| self.execute_step(step_id, input_text, &context_data))
+                    .collect();
+                
+                let wave_results = join_all(parallel_futures).await;
+                
+                // Process results
+                for (i, result) in wave_results.into_iter().enumerate() {
+                    let step_result = result?;
+                    let step_id = &wave_steps[i];
+                    
+                    if step_result.success {
+                        context_data.insert(step_id.clone(), step_result.extractions.clone());
+                        all_step_results.push(step_result);
+                    } else {
+                        return Err(LangExtractError::configuration(format!(
+                            "Step '{}' failed: {}",
+                            step_id,
+                            step_result.error_message.unwrap_or("Unknown error".to_string())
+                        )));
+                    }
+                }
+            }
+        }
+
+        // Build nested output structure
+        let nested_output = self.build_nested_output(&all_step_results)?;
+
+        let total_time = start_time.elapsed().as_millis() as u64;
+
+        println!("✅ Pipeline execution completed in {}ms", total_time);
+
+        Ok(PipelineResult {
+            config: self.config.clone(),
+            step_results: all_step_results,
+            nested_output,
+            total_time_ms: total_time,
+            success: true,
+            error_message: None,
+        })
+    }
+
     /// Resolve the execution order based on dependencies
     fn resolve_execution_order(&self) -> LangExtractResult<Vec<String>> {
         let mut order = Vec::new();
@@ -197,6 +306,48 @@ impl PipelineExecutor {
         }
 
         Ok(order)
+    }
+
+    /// Resolve execution waves for parallel processing
+    /// Groups steps by dependency level - steps in the same wave can run in parallel
+    fn resolve_execution_waves(&self) -> LangExtractResult<Vec<Vec<String>>> {
+        let mut waves = Vec::new();
+        let mut completed_steps = std::collections::HashSet::new();
+        let mut remaining_steps: std::collections::HashSet<String> = 
+            self.config.steps.iter().map(|s| s.id.clone()).collect();
+
+        while !remaining_steps.is_empty() {
+            let mut current_wave = Vec::new();
+            
+            // Find all steps whose dependencies are satisfied
+            for step in &self.config.steps {
+                if remaining_steps.contains(&step.id) {
+                    let dependencies_satisfied = step.depends_on.iter()
+                        .all(|dep| completed_steps.contains(dep));
+                    
+                    if dependencies_satisfied {
+                        current_wave.push(step.id.clone());
+                    }
+                }
+            }
+            
+            if current_wave.is_empty() {
+                // This shouldn't happen if there are no circular dependencies
+                return Err(LangExtractError::configuration(
+                    "Unable to resolve execution waves - possible circular dependency".to_string()
+                ));
+            }
+            
+            // Remove steps from remaining and add to completed
+            for step_id in &current_wave {
+                remaining_steps.remove(step_id);
+                completed_steps.insert(step_id.clone());
+            }
+            
+            waves.push(current_wave);
+        }
+
+        Ok(waves)
     }
 
     /// Recursive function to resolve dependencies
@@ -247,7 +398,7 @@ impl PipelineExecutor {
 
         println!("🔄 Executing step: {} ({})", step.name, step.id);
 
-        // Determine input text for this step
+        // Determine input text for this step with mapping context
         let step_input = self.prepare_step_input(step, input_text, context_data)?;
         let input_count = step_input.len();
 
@@ -269,14 +420,76 @@ impl PipelineExecutor {
             };
 
             match extract(
-                input_item,
+                &input_item.text,
                 Some(&step.prompt),
                 &examples,
                 step_config,
             ).await {
                 Ok(result) => {
                     if let Some(extractions) = result.extractions {
-                        all_extractions.extend(extractions);
+                        for mut ex in extractions {
+                            // For dependent steps, transform local intervals to absolute using parent start
+                            if !step.depends_on.is_empty() {
+                                if let Some(parent_start) = input_item.parent_start {
+                                    let mut abs_interval: Option<CharInterval> = None;
+
+                                    // If model returned local positions relative to subtext, map them
+                                    if let Some(ci) = &ex.char_interval {
+                                        if let (Some(ls), Some(le)) = (ci.start_pos, ci.end_pos) {
+                                            abs_interval = Some(CharInterval::new(Some(parent_start + ls), Some(parent_start + le)));
+                                        }
+                                    }
+
+                                    // Fallback: exact substring match within subtext
+                                    if abs_interval.is_none() {
+                                        if let Some(found) = input_item.text.find(&ex.extraction_text) {
+                                            let start = parent_start + found;
+                                            let end = start + ex.extraction_text.len();
+                                            abs_interval = Some(CharInterval::new(Some(start), Some(end)));
+                                        }
+                                    }
+
+                                    if let Some(ai) = abs_interval {
+                                        ex.char_interval = Some(ai);
+                                    }
+
+                                    // Annotate with parent metadata for downstream linkage
+                                    if let Some(parent_step_id) = &input_item.parent_step_id {
+                                        let mut attrs = ex.attributes.take().unwrap_or_default();
+                                        attrs.insert(
+                                            "parent_step_id".to_string(),
+                                            serde_json::Value::String(parent_step_id.clone()),
+                                        );
+                                        if let Some(ps) = input_item.parent_start {
+                                            attrs.insert(
+                                                "parent_start".to_string(),
+                                                serde_json::Value::Number(serde_json::Number::from(ps as u64)),
+                                            );
+                                        }
+                                        if let Some(pe) = input_item.parent_end {
+                                            attrs.insert(
+                                                "parent_end".to_string(),
+                                                serde_json::Value::Number(serde_json::Number::from(pe as u64)),
+                                            );
+                                        }
+                                        if let Some(pc) = &input_item.parent_class {
+                                            attrs.insert(
+                                                "parent_class".to_string(),
+                                                serde_json::Value::String(pc.clone()),
+                                            );
+                                        }
+                                        if let Some(pt) = &input_item.parent_text {
+                                            attrs.insert(
+                                                "parent_text".to_string(),
+                                                serde_json::Value::String(pt.clone()),
+                                            );
+                                        }
+                                        ex.attributes = Some(attrs);
+                                    }
+                                }
+                            }
+                            all_extractions.push(ex);
+                        }
                     }
                 }
                 Err(e) => {
@@ -316,10 +529,10 @@ impl PipelineExecutor {
         step: &PipelineStep,
         original_text: &str,
         context_data: &HashMap<String, Vec<Extraction>>,
-    ) -> LangExtractResult<Vec<String>> {
+    ) -> LangExtractResult<Vec<StepInputItem>> {
         // If step has dependencies, use extractions from dependent steps
         if !step.depends_on.is_empty() {
-            let mut inputs = Vec::new();
+            let mut inputs: Vec<StepInputItem> = Vec::new();
 
             for dep_id in &step.depends_on {
                 if let Some(extractions) = context_data.get(dep_id) {
@@ -327,7 +540,16 @@ impl PipelineExecutor {
                     let filtered_extractions = self.apply_filter(extractions, &step.filter);
 
                     for extraction in filtered_extractions {
-                        inputs.push(extraction.extraction_text.clone());
+                        let parent_start = extraction.char_interval.as_ref().and_then(|ci| ci.start_pos);
+                        let parent_end = extraction.char_interval.as_ref().and_then(|ci| ci.end_pos);
+                        inputs.push(StepInputItem {
+                            text: extraction.extraction_text.clone(),
+                            parent_start,
+                            parent_end,
+                            parent_step_id: Some(dep_id.clone()),
+                            parent_class: Some(extraction.extraction_class.clone()),
+                            parent_text: Some(extraction.extraction_text.clone()),
+                        });
                     }
                 }
             }
@@ -335,7 +557,14 @@ impl PipelineExecutor {
             Ok(inputs)
         } else {
             // First step - use original text
-            Ok(vec![original_text.to_string()])
+            Ok(vec![StepInputItem {
+                text: original_text.to_string(),
+                parent_start: Some(0),
+                parent_end: Some(original_text.len()),
+                parent_step_id: None,
+                parent_class: None,
+                parent_text: None,
+            }])
         }
     }
 
@@ -418,6 +647,7 @@ pub mod utils {
             name: "Requirements Extraction Pipeline".to_string(),
             description: "Extract requirements and sub-divide into values, units, and specifications".to_string(),
             version: "1.0.0".to_string(),
+            enable_parallel_execution: false,
             global_config: ExtractConfig {
                 model_id: "gemini-2.5-flash".to_string(),
                 api_key: None,

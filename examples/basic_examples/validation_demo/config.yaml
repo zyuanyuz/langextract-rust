@@ -1,0 +1,29 @@
+# Validation Demo Configuration
+# This demonstrates data validation and type coercion features
+
+# Model configuration
+model: "mistral"
+provider: "ollama"
+model_url: "http://localhost:11434"
+
+# Processing configuration optimized for validation accuracy
+temperature: 0.3
+max_char_buffer: 2000
+max_workers: 4
+batch_size: 6
+extraction_passes: 1
+
+# Output options
+format: "json"
+debug: true
+show_intervals: true
+
+# Validation settings (these would be handled by the resolver/validation system)
+# These are examples of what could be configured:
+enable_validation: true
+enable_type_coercion: true
+save_raw_output: true
+validate_required_fields: true
+
+# Multipass disabled for cleaner validation demonstration
+multipass: false

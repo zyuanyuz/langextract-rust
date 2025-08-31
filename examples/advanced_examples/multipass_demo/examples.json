@@ -1,0 +1,74 @@
+[
+  {
+    "text": "Dr. Sarah Chen, a neuroscientist at Stanford University, presented her research at the Global AI Conference 2024",
+    "extractions": [
+      {
+        "extraction_class": "person",
+        "extraction_text": "Dr. Sarah Chen"
+      },
+      {
+        "extraction_class": "profession",
+        "extraction_text": "neuroscientist"
+      },
+      {
+        "extraction_class": "organization",
+        "extraction_text": "Stanford University"
+      },
+      {
+        "extraction_class": "event",
+        "extraction_text": "Global AI Conference 2024"
+      }
+    ]
+  },
+  {
+    "text": "The conference was held at Moscone Convention Center from March 15-18, 2024, with over 5,000 attendees",
+    "extractions": [
+      {
+        "extraction_class": "location",
+        "extraction_text": "Moscone Convention Center"
+      },
+      {
+        "extraction_class": "date_range",
+        "extraction_text": "March 15-18, 2024"
+      },
+      {
+        "extraction_class": "attendance",
+        "extraction_text": "5,000 attendees"
+      }
+    ]
+  },
+  {
+    "text": "Research was funded by a $2.3 million grant from the National Science Foundation (NSF)",
+    "extractions": [
+      {
+        "extraction_class": "funding_amount",
+        "extraction_text": "$2.3 million"
+      },
+      {
+        "extraction_class": "funding_source",
+        "extraction_text": "National Science Foundation"
+      },
+      {
+        "extraction_class": "organization_abbreviation",
+        "extraction_text": "NSF"
+      }
+    ]
+  },
+  {
+    "text": "Contact Dr. Michael Rodriguez at m.rodriguez@mit.edu or call (617) 555-0456",
+    "extractions": [
+      {
+        "extraction_class": "person",
+        "extraction_text": "Dr. Michael Rodriguez"
+      },
+      {
+        "extraction_class": "email",
+        "extraction_text": "m.rodriguez@mit.edu"
+      },
+      {
+        "extraction_class": "phone",
+        "extraction_text": "(617) 555-0456"
+      }
+    ]
+  }
+]

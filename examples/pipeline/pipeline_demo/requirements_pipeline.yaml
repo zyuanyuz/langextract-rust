@@ -1,0 +1,86 @@
+name: "Requirements Extraction Pipeline"
+description: "Extract requirements and sub-divide into values, units, and specifications"
+version: "1.0.0"
+enable_parallel_execution: true  # Enable parallel execution of independent steps
+
+global_config:
+  model_id: "mistral"
+  api_key: null
+  format_type: "json"
+  max_char_buffer: 2000
+  temperature: 0.3
+  fence_output: null
+  use_schema_constraints: true
+  batch_length: 4
+  max_workers: 6
+  additional_context: null
+  resolver_params: {}
+  language_model_params:
+    provider_config:
+      provider_type: "ollama"
+      base_url: "http://localhost:11434"
+      model: "mistral"
+      api_key: null
+      headers: {}
+      extra_params: {}
+  debug: false
+  model_url: "http://localhost:11434"
+  extraction_passes: 1
+  enable_multipass: false
+  multipass_min_extractions: 1
+  multipass_quality_threshold: 0.3
+
+steps:
+  - id: "extract_requirements"
+    name: "Extract Requirements"
+    description: "Extract requirements from the document"
+    prompt: "Extract ONLY the requirements and 'shall' statements from this text. Focus on system requirements, performance criteria, security rules, and data specifications."
+    output_field: "requirements"
+    depends_on: []
+    examples:
+      - text: "The API must respond in 200ms. Users need secure passwords. Data should be backed up daily."
+        extractions:
+          - extraction_class: "api_response"
+            extraction_text: "The API must respond in 200ms"
+          - extraction_class: "password_rule"
+            extraction_text: "Users need secure passwords"
+          - extraction_class: "backup_rule"
+            extraction_text: "Data should be backed up daily"
+
+  - id: "extract_values"
+    name: "Extract Values"  
+    description: "Extract numeric values, units, and specifications from requirements"
+    prompt: "From this requirement text, extract all numeric values and their associated units or specifications. Focus on performance metrics, limits, and measurable criteria."
+    output_field: "values"
+    depends_on: ["extract_requirements"]
+    filter:
+      text_pattern: "shall|must|should|requirement|performance|system|database|response|memory|concurrent|transactions|milliseconds|GB|users|percent|minutes|hours|years"
+    examples:
+      - text: "The database must support 200 concurrent connections with 95% availability."
+        extractions:
+          - extraction_class: "numeric_value"
+            extraction_text: "200"
+          - extraction_class: "unit"
+            extraction_text: "concurrent connections"
+          - extraction_class: "numeric_value"
+            extraction_text: "95"
+          - extraction_class: "unit"
+            extraction_text: "percent availability"
+
+  - id: "extract_specifications"
+    name: "Extract Specifications"
+    description: "Extract detailed specifications and constraints from requirements"
+    prompt: "Extract detailed specifications, constraints, and technical requirements from this text. Focus on security (encryption, authentication), data protection, compliance standards, API specifications, and technical implementation details. Return each specification as a separate extraction with a descriptive class name."
+    output_field: "specifications"
+    depends_on: ["extract_requirements"]
+    filter:
+      text_pattern: "encryption|security|authentication|access|password|data|protection|logs|AES|MFA|characters|backup|CSV|JSON|XML|API|OAuth"
+    examples:
+      - text: "The web service must respond within 500ms and handle SSL encryption. Data must be backed up daily."
+        extractions:
+          - extraction_class: "performance_spec"
+            extraction_text: "respond within 500ms"
+          - extraction_class: "security_spec"
+            extraction_text: "handle SSL encryption"
+          - extraction_class: "backup_spec"
+            extraction_text: "Data must be backed up daily"

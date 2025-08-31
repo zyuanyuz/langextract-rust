@@ -218,6 +218,26 @@ mod cli {
         /// Sample pipeline type (requirements, medical, etc.)
         #[arg(long, default_value = "requirements")]
         pub sample_type: String,
+
+        /// Aggregate layered highlights (HTML export)
+        #[arg(long, default_value_t = false)]
+        pub aggregate_highlights: bool,
+
+        /// Allow overlapping highlights in layered HTML
+        #[arg(long, default_value_t = false)]
+        pub allow_overlaps: bool,
+
+        /// Expand nested JSON extraction_text into atomic highlights
+        #[arg(long, default_value_t = false)]
+        pub expand_nested_json: bool,
+
+        /// Export layered HTML to file (with flags)
+        #[arg(long)]
+        pub export_html: Option<PathBuf>,
+
+        /// Export flattened JSON to file (Rust-exported, replaces python flatten)
+        #[arg(long)]
+        pub export_flattened: Option<PathBuf>,
     }
 
     #[derive(ValueEnum, Clone, Debug)]
@@ -745,6 +765,30 @@ OLLAMA_BASE_URL=http://localhost:11434
             println!("💾 Pipeline results saved to: {}", output_path.display());
         } else {
             println!("{}", output_content);
+        }
+
+        // Optional layered HTML export
+        if let Some(html_path) = &args.export_html {
+            use langextract_rust::visualization::{ExportConfig, ExportFormat, export_pipeline_html};
+            let cfg = ExportConfig {
+                format: ExportFormat::Html,
+                aggregate_pipeline_highlights: args.aggregate_highlights,
+                allow_overlapping_highlights: args.allow_overlaps,
+                expand_nested_json: args.expand_nested_json,
+                show_pipeline_legend: true,
+                ..Default::default()
+            };
+            let html = export_pipeline_html(&result, &input_text, &cfg)?;
+            std::fs::write(html_path, html)?;
+            println!("📊 Layered HTML exported to: {}", html_path.display());
+        }
+
+        // Optional flattened JSON export (Rust-generated)
+        if let Some(json_path) = &args.export_flattened {
+            use langextract_rust::visualization::export_pipeline_flattened_json;
+            let flat = export_pipeline_flattened_json(&result, &input_text, args.expand_nested_json)?;
+            std::fs::write(json_path, flat)?;
+            println!("📄 Flattened JSON exported to: {}", json_path.display());
         }
 
         // Print summary

@@ -1,0 +1,70 @@
+[
+  {
+    "text": "John Doe is 30 years old and works as a software engineer at Google",
+    "extractions": [
+      {
+        "extraction_class": "person_name",
+        "extraction_text": "John Doe"
+      },
+      {
+        "extraction_class": "age",
+        "extraction_text": "30"
+      },
+      {
+        "extraction_class": "job_title",
+        "extraction_text": "software engineer"
+      },
+      {
+        "extraction_class": "company",
+        "extraction_text": "Google"
+      }
+    ]
+  },
+  {
+    "text": "Dr. Sarah Wilson, 45, is a cardiologist at Stanford Hospital",
+    "extractions": [
+      {
+        "extraction_class": "person_name",
+        "extraction_text": "Dr. Sarah Wilson"
+      },
+      {
+        "extraction_class": "age",
+        "extraction_text": "45"
+      },
+      {
+        "extraction_class": "job_title",
+        "extraction_text": "cardiologist"
+      },
+      {
+        "extraction_class": "company",
+        "extraction_text": "Stanford Hospital"
+      }
+    ]
+  },
+  {
+    "text": "The research project received $1.5 million in funding from the National Science Foundation",
+    "extractions": [
+      {
+        "extraction_class": "funding_amount",
+        "extraction_text": "$1.5 million"
+      },
+      {
+        "extraction_class": "funding_source",
+        "extraction_text": "National Science Foundation"
+      }
+    ]
+  },
+  {
+    "text": "Contact information: alice.smith@university.edu or call (555) 123-4567",
+    "extractions": [
+      {
+        "extraction_class": "email",
+        "extraction_text": "alice.smith@university.edu"
+      },
+      {
+        "extraction_class": "phone",
+        "extraction_text": "(555) 123-4567"
+      }
+    ]
+  }
+]

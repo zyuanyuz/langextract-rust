@@ -1,0 +1,13 @@
+[
+  {
+    "text": "All data in transit and at rest shall be encrypted, the system shall enforce secure HTTPS connections and regular security audits",
+    "extractions": [
+      {"extraction_class": "encryption_spec", "extraction_text": "All data in transit and at rest shall be encrypted", "attributes": {"encryption": ["AES-256", "TLS 1.2+"], "scope": ["in transit", "at rest"]}},
+      {"extraction_class": "connection_type", "extraction_text": "shall enforce secure HTTPS connections", "attributes": {"protocols": ["HTTPS", "TLS"], "ports": [443]}},
+      {"extraction_class": "security_audit", "extraction_text": "regular security audits", "attributes": {"frequency": ["quarterly", "annually"]}}
+    ]
+  }
+]
+
+
+

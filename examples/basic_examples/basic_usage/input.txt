@@ -1,0 +1,1 @@
+Alice Smith is 28 years old and works as a data scientist at Google. Bob Wilson, 42, is a mechanical engineer working at Tesla. Professor Maria Garcia, age 55, teaches computer science at Stanford University.

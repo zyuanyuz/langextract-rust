@@ -1,0 +1,24 @@
+Electronic Device Specifications:
+
+Product Model: ABC-4567-X costs $149.99 and has 92% energy efficiency. The device weighs 1.8 kg and operates at 3.3V.
+
+Customer Service Information:
+- Email: support@techcorp.com
+- Phone: (800) 555-0199
+- Hours: 8:30 AM to 6:45 PM EST
+- Web: https://www.techcorp.com/support
+
+Financial Details:
+- Original Price: $199.99
+- Discount: 25%
+- Final Price: $149.99
+- Tax Rate: 8.5%
+- Shipping: $12.50
+
+Technical Specifications:
+- Processor Speed: 2.4 GHz
+- Memory: 16 GB
+- Storage: 512 GB SSD
+- Battery Life: 12.5 hours
+- Weight: 1.8 kg
+- Dimensions: 35.6 cm x 24.1 cm x 1.9 cm

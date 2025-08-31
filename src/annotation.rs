@@ -116,8 +116,8 @@ impl Annotator {
 
         // Create inference parameters
         let mut kwargs = HashMap::new();
-        kwargs.insert("temperature".to_string(), serde_json::json!(0.2));
-        kwargs.insert("max_tokens".to_string(), serde_json::json!(1000));
+        kwargs.insert("temperature".to_string(), serde_json::json!(1));
+        kwargs.insert("max_completion_tokens".to_string(), serde_json::json!(8000));
 
         // Call the language model
         let results = self.language_model.infer(&[prompt], &kwargs).await?;

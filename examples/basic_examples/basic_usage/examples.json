@@ -1,0 +1,40 @@
+[
+  {
+    "text": "John Doe is 30 years old and works as a software engineer",
+    "extractions": [
+      {
+        "extraction_class": "person",
+        "extraction_text": "John Doe"
+      },
+      {
+        "extraction_class": "age",
+        "extraction_text": "30"
+      },
+      {
+        "extraction_class": "profession",
+        "extraction_text": "software engineer"
+      }
+    ]
+  },
+  {
+    "text": "Dr. Sarah Johnson, 35, is a cardiologist at Mayo Clinic",
+    "extractions": [
+      {
+        "extraction_class": "person",
+        "extraction_text": "Dr. Sarah Johnson"
+      },
+      {
+        "extraction_class": "age",
+        "extraction_text": "35"
+      },
+      {
+        "extraction_class": "profession",
+        "extraction_text": "cardiologist"
+      },
+      {
+        "extraction_class": "workplace",
+        "extraction_text": "Mayo Clinic"
+      }
+    ]
+  }
+]

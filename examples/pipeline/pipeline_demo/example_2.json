@@ -1,0 +1,14 @@
+[
+  {
+    "text": "The system shall process 100 transactions per second and maintain 99.9% uptime.",
+    "extractions": [
+      {"extraction_class": "numeric_value", "extraction_text": "100", "attributes": {"format": "integer", "context": ["transactions", "throughput"]}},
+      {"extraction_class": "unit", "extraction_text": "transactions per second", "attributes": {"aliases": ["tps", "req/s"], "category": "throughput"}},
+      {"extraction_class": "percentage_value", "extraction_text": "99.9", "attributes": {"format": "1 decimal place", "context": ["uptime", "availability"]}},
+      {"extraction_class": "unit", "extraction_text": "%", "attributes": {"aliases": ["percent", "%"], "category": "percentage"}}
+    ]
+  }
+]
+
+
+

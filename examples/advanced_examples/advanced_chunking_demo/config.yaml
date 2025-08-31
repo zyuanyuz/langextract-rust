@@ -1,0 +1,27 @@
+# Advanced Chunking Demo Configuration
+# This demonstrates intelligent text chunking for large documents
+
+# Model configuration
+model: "mistral"
+provider: "ollama"
+model_url: "http://localhost:11434"
+
+# Chunking configuration - the key feature being demonstrated
+max_char_buffer: 4000   # Smaller chunks to force chunking behavior
+max_workers: 8          # High parallelism for chunk processing
+batch_size: 6           # Process multiple chunks in parallel
+
+# Processing configuration optimized for chunking
+temperature: 0.3        # Consistent results across chunks
+extraction_passes: 1    # Single pass per chunk (can combine with multipass)
+
+# Output options
+format: "json"
+debug: true            # Show chunking details
+show_intervals: true   # Character positions across chunks
+
+# Multipass can be combined with chunking
+multipass: false       # Disabled for cleaner chunking demonstration
+
+# Additional context helps maintain consistency across chunks
+additional_context: "This is a large document being processed in chunks. Maintain consistency in entity extraction across all chunks. Focus on people, organizations, locations, dates, funding, and contact information."

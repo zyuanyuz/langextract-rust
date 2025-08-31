@@ -499,7 +499,7 @@ impl TextChunker {
         document_id: Option<String>,
     ) -> LangExtractResult<Vec<TextChunk>> {
         let mut chunks = Vec::new();
-        let mut chunk_id = 0;
+        let mut chunk_id = 0; 
         let mut current_start = 0;
 
         for &boundary in boundaries.iter().skip(1) {

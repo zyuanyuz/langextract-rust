@@ -1,0 +1,9 @@
+[
+  {
+    "text": "The system shall process 100 transactions per second and maintain 99.9% uptime.",
+    "extractions": [
+      {"extraction_class": "requirement", "extraction_text": "The system shall process 100 transactions per second and maintain 99.9% uptime.", "attributes": {"type": "performance"}}
+    ]
+  }
+]
+
