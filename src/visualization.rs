@@ -554,67 +554,67 @@ fn visualize_text(
     show_char_intervals: bool,
 ) -> LangExtractResult<String> {
     let mut result = String::new();
-    
+
     result.push_str("📄 EXTRACTION VISUALIZATION\n");
     result.push_str("=" .repeat(50).as_str());
     result.push('\n');
-    
+
     // Show document text
     let text = annotated_document.text.as_deref().unwrap_or("No text");
     result.push_str(&format!("📝 Document Text ({} chars):\n", text.len()));
     result.push_str(&format!("   {}\n\n", text));
-    
+
     // Show extractions
     if let Some(extractions) = &annotated_document.extractions {
         result.push_str(&format!("🎯 Found {} Extractions:\n", extractions.len()));
         result.push_str("-".repeat(30).as_str());
         result.push('\n');
-        
+
         for (i, extraction) in extractions.iter().enumerate() {
-            result.push_str(&format!("{}. [{}] {}\n", 
-                i + 1, 
-                extraction.extraction_class, 
+            result.push_str(&format!("{}. [{}] {}\n",
+                i + 1,
+                extraction.extraction_class,
                 extraction.extraction_text
             ));
-            
+
             if show_char_intervals {
                 if let Some(interval) = &extraction.char_interval {
                     result.push_str(&format!("   Position: {:?}\n", interval));
                 }
             }
-            
+
             if let Some(description) = &extraction.description {
                 result.push_str(&format!("   Description: {}\n", description));
             }
-            
+
             result.push('\n');
         }
     } else {
         result.push_str("ℹ️  No extractions found\n");
     }
-    
+
     // Show statistics
     result.push_str("📊 Statistics:\n");
     result.push_str("-".repeat(15).as_str());
     result.push('\n');
-    result.push_str(&format!("   Document ID: {}\n", 
+    result.push_str(&format!("   Document ID: {}\n",
         annotated_document.document_id.as_deref().unwrap_or("None")));
     result.push_str(&format!("   Text Length: {} characters\n", text.len()));
     result.push_str(&format!("   Total Extractions: {}\n", annotated_document.extraction_count()));
-    
+
     if let Some(extractions) = &annotated_document.extractions {
         // Count unique extraction classes
         let mut class_counts = std::collections::HashMap::new();
         for extraction in extractions {
             *class_counts.entry(&extraction.extraction_class).or_insert(0) += 1;
         }
-        
+
         result.push_str("   Extraction Classes:\n");
         for (class, count) in class_counts {
             result.push_str(&format!("     • {}: {} instance(s)\n", class, count));
         }
     }
-    
+
     Ok(result)
 }
 
@@ -625,9 +625,9 @@ fn export_html(
 ) -> LangExtractResult<String> {
     let title = config.title.as_deref().unwrap_or("LangExtract Results");
     let text = annotated_document.text.as_deref().unwrap_or("No text");
-    
+
     let mut html = String::new();
-    
+
     // HTML Header
     html.push_str(&format!(r#"<!DOCTYPE html>
 <html lang="en">
@@ -794,13 +794,13 @@ fn export_html(
         html.push_str(r#"            <div class="section">
                 <h2>📄 Document Text</h2>
                 <div class="document-text">"#);
-        
+
         if config.highlight_extractions {
             html.push_str(&highlight_text_html(text, annotated_document)?);
         } else {
             html.push_str(&html_escape(text));
         }
-        
+
         html.push_str("</div>\n            </div>\n");
     }
 
@@ -831,7 +831,7 @@ fn export_html(
 
             html.push_str("                    </div>\n");
         }
-        
+
         html.push_str("                </div>\n            </div>\n");
     }
 
@@ -862,12 +862,12 @@ fn export_html(
 "#, class_counts.len()));
 
             html.push_str("                </div>\n");
-            
+
             // Class breakdown
             html.push_str(r#"                <h3>Extraction Classes</h3>
                 <div class="class-counts">
 "#);
-            
+
             for (class, count) in class_counts {
                 html.push_str(&format!(r#"                    <div class="class-count-item">
                         <span>{}</span>
@@ -875,19 +875,19 @@ fn export_html(
                     </div>
 "#, html_escape(class), count));
             }
-            
+
             html.push_str("                </div>\n");
         } else {
             html.push_str("                </div>\n");
         }
-        
+
         html.push_str("            </div>\n");
     }
 
     // Footer
     html.push_str(r#"        </div>
     </div>
-    
+
     <script>
         // Add interactivity for extraction highlights
         document.querySelectorAll('.extraction-highlight').forEach(element => {
@@ -919,17 +919,17 @@ fn find_char_boundary(text: &str, mut index: usize) -> usize {
     if index >= text.len() {
         return text.len();
     }
-    
+
     // If we're already at a character boundary, return as-is
     if text.is_char_boundary(index) {
         return index;
     }
-    
+
     // Search backwards for the nearest character boundary
     while index > 0 && !text.is_char_boundary(index) {
         index -= 1;
     }
-    
+
     index
 }
 
@@ -938,7 +938,7 @@ fn highlight_text_html(text: &str, annotated_document: &AnnotatedDocument) -> La
     if let Some(extractions) = &annotated_document.extractions {
         // Collect all valid intervals with their extraction info
         let mut intervals: Vec<(usize, usize, &Extraction)> = Vec::new();
-        
+
         for extraction in extractions {
             if let Some(interval) = &extraction.char_interval {
                 if let (Some(start), Some(end)) = (interval.start_pos, interval.end_pos) {
@@ -948,34 +948,34 @@ fn highlight_text_html(text: &str, annotated_document: &AnnotatedDocument) -> La
                 }
             }
         }
-        
+
         // Sort by start position
         intervals.sort_by_key(|(start, _, _)| *start);
-        
+
         // Remove overlapping intervals - keep the first one when intervals overlap
         let mut filtered_intervals = Vec::new();
         let mut last_end = 0;
-        
+
         for (start, end, extraction) in intervals {
             if start >= last_end {
                 filtered_intervals.push((start, end, extraction));
                 last_end = end;
             } else {
                 // Skip overlapping interval, but log it for debugging
-                log::debug!("Skipping overlapping extraction: '{}' at {}-{} (overlaps with previous ending at {})", 
+                log::debug!("Skipping overlapping extraction: '{}' at {}-{} (overlaps with previous ending at {})",
                     extraction.extraction_text, start, end, last_end);
             }
         }
-        
+
         // Now build the HTML with non-overlapping intervals
         let mut result = String::new();
         let mut last_pos = 0;
-        
+
         for (start, end, extraction) in filtered_intervals {
             // Ensure we're at valid UTF-8 boundaries
             let safe_start = find_char_boundary(text, start);
             let safe_end = find_char_boundary(text, end);
-            
+
             // Add text before this extraction
             if safe_start > last_pos {
                 let safe_last_pos = find_char_boundary(text, last_pos);
@@ -983,7 +983,7 @@ fn highlight_text_html(text: &str, annotated_document: &AnnotatedDocument) -> La
                     result.push_str(&html_escape(&text[safe_last_pos..safe_start]));
                 }
             }
-            
+
             // Add the highlighted extraction (only if we have valid boundaries)
             if safe_start < safe_end && safe_end <= text.len() {
                 let actual_text = &text[safe_start..safe_end];
@@ -996,11 +996,11 @@ fn highlight_text_html(text: &str, annotated_document: &AnnotatedDocument) -> La
                 last_pos = safe_end;
             } else {
                 // Skip invalid boundaries but log for debugging
-                log::debug!("Skipping extraction with invalid UTF-8 boundaries: '{}' at {}-{}", 
+                log::debug!("Skipping extraction with invalid UTF-8 boundaries: '{}' at {}-{}",
                     extraction.extraction_text, start, end);
             }
         }
-        
+
         // Add remaining text
         if last_pos < text.len() {
             let safe_last_pos = find_char_boundary(text, last_pos);
@@ -1008,7 +1008,7 @@ fn highlight_text_html(text: &str, annotated_document: &AnnotatedDocument) -> La
                 result.push_str(&html_escape(&text[safe_last_pos..]));
             }
         }
-        
+
         Ok(result)
     } else {
         Ok(html_escape(text))
@@ -1031,69 +1031,69 @@ fn export_markdown(
 ) -> LangExtractResult<String> {
     let title = config.title.as_deref().unwrap_or("LangExtract Results");
     let text = annotated_document.text.as_deref().unwrap_or("No text");
-    
+
     let mut md = String::new();
-    
+
     // Title
     md.push_str(&format!("# {}\n\n", title));
-    
+
     // Document text section
     if config.include_text {
         md.push_str("## 📄 Document Text\n\n");
-        
+
         if config.highlight_extractions {
             md.push_str(&highlight_text_markdown(text, annotated_document)?);
         } else {
             md.push_str(&format!("```\n{}\n```\n", text));
         }
-        
+
         md.push_str("\n");
     }
-    
+
     // Extractions section
     if let Some(extractions) = &annotated_document.extractions {
         md.push_str(&format!("## 🎯 Extractions ({} found)\n\n", extractions.len()));
-        
+
         for (i, extraction) in extractions.iter().enumerate() {
             md.push_str(&format!("### {}. {}\n\n", i + 1, extraction.extraction_class));
             md.push_str(&format!("**Text:** {}\n\n", extraction.extraction_text));
-            
+
             if config.show_char_intervals {
                 if let Some(interval) = &extraction.char_interval {
                     md.push_str(&format!("**Position:** {}-{}\n\n", interval.start_pos.unwrap_or(0), interval.end_pos.unwrap_or(0)));
                 }
             }
-            
+
             if let Some(description) = &extraction.description {
                 md.push_str(&format!("**Description:** {}\n\n", description));
             }
         }
     }
-    
+
     // Statistics section
     if config.include_statistics {
         md.push_str("## 📊 Statistics\n\n");
-        
+
         let extraction_count = annotated_document.extraction_count();
         md.push_str(&format!("- **Total Extractions:** {}\n", extraction_count));
         md.push_str(&format!("- **Text Length:** {} characters\n", text.len()));
-        
+
         if let Some(extractions) = &annotated_document.extractions {
             let class_counts = count_extraction_classes(extractions);
             md.push_str(&format!("- **Unique Classes:** {}\n\n", class_counts.len()));
-            
+
             md.push_str("### Extraction Classes\n\n");
             md.push_str("| Class | Count |\n");
             md.push_str("|-------|-------|\n");
-            
+
             for (class, count) in class_counts {
                 md.push_str(&format!("| {} | {} |\n", class, count));
             }
         }
-        
+
         md.push_str("\n");
     }
-    
+
     Ok(md)
 }
 
@@ -1102,22 +1102,22 @@ fn highlight_text_markdown(text: &str, annotated_document: &AnnotatedDocument) -
     if let Some(extractions) = &annotated_document.extractions {
         let mut result = String::new();
         let mut last_pos = 0;
-        
+
         // Sort extractions by start position
         let mut sorted_extractions: Vec<_> = extractions.iter().collect();
         sorted_extractions.sort_by_key(|e| {
             e.char_interval.as_ref().and_then(|i| i.start_pos).unwrap_or(usize::MAX)
         });
-        
+
         result.push_str("```\n");
-        
+
         for extraction in sorted_extractions {
             if let Some(interval) = &extraction.char_interval {
                 // Add text before the extraction
                 if interval.start_pos.unwrap_or(0) > last_pos && interval.start_pos.unwrap_or(0) <= text.len() {
                     result.push_str(&text[last_pos..interval.start_pos.unwrap_or(0)]);
                 }
-                
+
                 // Add highlighted extraction with markdown bold
                 if interval.end_pos.unwrap_or(0) <= text.len() && interval.start_pos.unwrap_or(0) < interval.end_pos.unwrap_or(0) {
                     let extraction_text = &text[interval.start_pos.unwrap_or(0)..interval.end_pos.unwrap_or(0)];
@@ -1126,12 +1126,12 @@ fn highlight_text_markdown(text: &str, annotated_document: &AnnotatedDocument) -
                 }
             }
         }
-        
+
         // Add remaining text
         if last_pos < text.len() {
             result.push_str(&text[last_pos..]);
         }
-        
+
         result.push_str("\n```\n");
         Ok(result)
     } else {
@@ -1154,12 +1154,12 @@ fn export_json(
             "title": config.title
         }
     });
-    
+
     // Add text if requested
     if config.include_text {
         json_data["text"] = json!(annotated_document.text);
     }
-    
+
     // Add extractions
     if let Some(extractions) = &annotated_document.extractions {
         let extractions_json: Vec<Value> = extractions.iter().map(|extraction| {
@@ -1168,7 +1168,7 @@ fn export_json(
                 "extraction_text": extraction.extraction_text,
                 "description": extraction.description
             });
-            
+
             if config.show_char_intervals {
                 if let Some(interval) = &extraction.char_interval {
                     ext_json["char_interval"] = json!({
@@ -1178,17 +1178,17 @@ fn export_json(
                     });
                 }
             }
-            
+
             if let Some(group_index) = extraction.group_index {
                 ext_json["group_index"] = json!(group_index);
             }
-            
+
             ext_json
         }).collect();
-        
+
         json_data["extractions"] = json!(extractions_json);
     }
-    
+
     // Add statistics if requested
     if config.include_statistics {
         let text = annotated_document.text.as_deref().unwrap_or("");
@@ -1196,16 +1196,16 @@ fn export_json(
             "total_extractions": annotated_document.extraction_count(),
             "text_length": text.len()
         });
-        
+
         if let Some(extractions) = &annotated_document.extractions {
             let class_counts = count_extraction_classes(extractions);
             stats["unique_classes"] = json!(class_counts.len());
             stats["extraction_classes"] = json!(class_counts);
         }
-        
+
         json_data["statistics"] = stats;
     }
-    
+
     Ok(serde_json::to_string_pretty(&json_data)?)
 }
 
@@ -1215,14 +1215,14 @@ fn export_csv(
     config: &ExportConfig,
 ) -> LangExtractResult<String> {
     let mut csv = String::new();
-    
+
     // CSV Header
     if config.show_char_intervals {
         csv.push_str("extraction_class,extraction_text,description,start_char,end_char,alignment_status,group_index\n");
     } else {
         csv.push_str("extraction_class,extraction_text,description,group_index\n");
     }
-    
+
     // CSV Rows
     if let Some(extractions) = &annotated_document.extractions {
         for extraction in extractions {
@@ -1230,7 +1230,7 @@ fn export_csv(
             let text = csv_escape(&extraction.extraction_text);
             let description = extraction.description.as_ref().map(|d| csv_escape(d)).unwrap_or_else(|| "".to_string());
             let group_index = extraction.group_index.map(|i| i.to_string()).unwrap_or_else(|| "".to_string());
-            
+
             if config.show_char_intervals {
                 if let Some(interval) = &extraction.char_interval {
                     csv.push_str(&format!("{},{},{},{},{},{:?},{}\n",
@@ -1247,7 +1247,7 @@ fn export_csv(
             }
         }
     }
-    
+
     Ok(csv)
 }
 
@@ -1323,7 +1323,7 @@ mod tests {
         };
 
         let result = export_document(&document, &config).unwrap();
-        
+
         assert!(result.contains("EXTRACTION VISUALIZATION"));
         assert!(result.contains("John Smith"));
         assert!(result.contains("TechCorp"));
@@ -1344,7 +1344,7 @@ mod tests {
         };
 
         let result = export_document(&document, &config).unwrap();
-        
+
         assert!(result.contains("<!DOCTYPE html>"));
         assert!(result.contains("<title>Test HTML Export</title>"));
         assert!(result.contains("extraction-highlight"));
@@ -1366,7 +1366,7 @@ mod tests {
         };
 
         let result = export_document(&document, &config).unwrap();
-        
+
         assert!(result.contains(custom_css));
     }
 
@@ -1382,7 +1382,7 @@ mod tests {
         };
 
         let result = export_document(&document, &config).unwrap();
-        
+
         assert!(result.starts_with("# Test Markdown"));
         assert!(result.contains("## 📄 Document Text"));
         assert!(result.contains("## 🎯 Extractions"));
@@ -1406,20 +1406,20 @@ mod tests {
 
         let result = export_document(&document, &config).unwrap();
         let parsed: serde_json::Value = serde_json::from_str(&result).unwrap();
-        
+
         assert_eq!(parsed["document_id"], "test_doc");
         assert!(parsed["text"].is_string());
         assert!(parsed["extractions"].is_array());
         assert!(parsed["statistics"].is_object());
-        
+
         let extractions = parsed["extractions"].as_array().unwrap();
         assert_eq!(extractions.len(), 3);
-        
+
         let first_extraction = &extractions[0];
         assert_eq!(first_extraction["extraction_class"], "person");
         assert_eq!(first_extraction["extraction_text"], "John Smith");
         assert!(first_extraction["char_interval"].is_object());
-        
+
         let stats = &parsed["statistics"];
         assert_eq!(stats["total_extractions"], 3);
         assert_eq!(stats["unique_classes"], 3);
@@ -1436,10 +1436,10 @@ mod tests {
 
         let result = export_document(&document, &config).unwrap();
         let lines: Vec<&str> = result.lines().collect();
-        
+
         // Check header
         assert_eq!(lines[0], "extraction_class,extraction_text,description,start_char,end_char,alignment_status,group_index");
-        
+
         // Check data rows
         assert_eq!(lines.len(), 4); // Header + 3 data rows
         assert!(lines[1].contains("person,John Smith"));
@@ -1460,10 +1460,10 @@ mod tests {
 
         let result = export_document(&document, &config).unwrap();
         let lines: Vec<&str> = result.lines().collect();
-        
+
         // Check header
         assert_eq!(lines[0], "extraction_class,extraction_text,description,group_index");
-        
+
         // Should not contain position columns
         assert!(!result.contains("start_char"));
         assert!(!result.contains("end_char"));
@@ -1509,7 +1509,7 @@ mod tests {
 
         let config = ExportConfig::default();
         let result = export_document(&document, &config).unwrap();
-        
+
         assert!(result.contains("No extractions found"));
     }
 
@@ -1523,14 +1523,14 @@ mod tests {
 
         let config = ExportConfig::default();
         let result = export_document(&document, &config).unwrap();
-        
+
         assert!(result.contains("No text"));
     }
 
     #[test]
     fn test_export_format_variants() {
         let document = create_sample_document();
-        
+
         // Test all export formats don't panic
         for format in [ExportFormat::Text, ExportFormat::Html, ExportFormat::Markdown, ExportFormat::Json, ExportFormat::Csv] {
             let config = ExportConfig {
@@ -1546,9 +1546,9 @@ mod tests {
     fn test_highlight_text_html() {
         let document = create_sample_document();
         let text = document.text.as_ref().unwrap();
-        
+
         let result = highlight_text_html(text, &document).unwrap();
-        
+
         assert!(result.contains("extraction-highlight"));
         assert!(result.contains("data-class=\"person\""));
         assert!(result.contains("data-text=\"John Smith\""));
@@ -1594,7 +1594,7 @@ mod tests {
         ];
 
         let counts = count_extraction_classes(&extractions);
-        
+
         assert_eq!(counts.get("person"), Some(&2));
         assert_eq!(counts.get("company"), Some(&1));
         assert_eq!(counts.len(), 2);

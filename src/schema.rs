@@ -7,6 +7,9 @@ use std::collections::HashMap;
 /// Shared key for extraction arrays in JSON/YAML
 pub const EXTRACTIONS_KEY: &str = "extractions";
 
+/// Attributes for
+pub const ATTRIBUTES_SUFFIX:&str = "_attributes";
+
 /// Enumeration of constraint types
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -187,7 +190,7 @@ mod tests {
             vec![Extraction::new("test".to_string(), "value".to_string())],
         )];
 
-        let schema = FormatModeSchema::from_examples(&examples, "_attributes").unwrap();
+        let schema = FormatModeSchema::from_examples(&examples, ATTRIBUTES_SUFFIX).unwrap();
         assert!(schema.supports_strict_mode()); // Should default to JSON
     }
 

@@ -1,15 +1,16 @@
 //! Output resolution and parsing functionality.
 
 use crate::{
-    data::{FormatType, Extraction}, 
-    exceptions::{LangExtractError, LangExtractResult}, 
-    ExtractConfig
+    data::{Extraction, FormatType},
+    exceptions::{LangExtractError, LangExtractResult},
+    schema::ATTRIBUTES_SUFFIX,
+    ExtractConfig,
 };
+use regex::Regex;
 use serde_json::Value;
 use std::fs;
 use std::path::Path;
 use uuid::Uuid;
-use regex::Regex;
 
 /// Configuration for validation behavior
 #[derive(Debug, Clone)]
@@ -168,7 +169,7 @@ impl TypeCoercer {
         let trimmed_value = value.trim();
 
         // Try different coercion types in order of specificity
-        
+
         // 1. Try percentage first (very specific pattern)
         if let Some(result) = self.try_coerce_percentage(field_name, trimmed_value) {
             return result;
@@ -256,7 +257,10 @@ impl TypeCoercer {
                 Ok(num) => Some(CoercionDetail {
                     field_name: field_name.to_string(),
                     original_value: value.to_string(),
-                    coerced_value: Some(Value::Number(serde_json::Number::from_f64(num).unwrap_or_else(|| serde_json::Number::from(0)))),
+                    coerced_value: Some(Value::Number(
+                        serde_json::Number::from_f64(num)
+                            .unwrap_or_else(|| serde_json::Number::from(0)),
+                    )),
                     target_type: CoercionTargetType::Float,
                     success: true,
                     error_message: None,
@@ -317,7 +321,10 @@ impl TypeCoercer {
                 return Some(CoercionDetail {
                     field_name: field_name.to_string(),
                     original_value: value.to_string(),
-                    coerced_value: Some(Value::Number(serde_json::Number::from_f64(amount).unwrap_or_else(|| serde_json::Number::from(0)))),
+                    coerced_value: Some(Value::Number(
+                        serde_json::Number::from_f64(amount)
+                            .unwrap_or_else(|| serde_json::Number::from(0)),
+                    )),
                     target_type: CoercionTargetType::Currency,
                     success: true,
                     error_message: None,
@@ -334,7 +341,10 @@ impl TypeCoercer {
                     return Some(CoercionDetail {
                         field_name: field_name.to_string(),
                         original_value: value.to_string(),
-                        coerced_value: Some(Value::Number(serde_json::Number::from_f64(percent / 100.0).unwrap_or_else(|| serde_json::Number::from(0)))),
+                        coerced_value: Some(Value::Number(
+                            serde_json::Number::from_f64(percent / 100.0)
+                                .unwrap_or_else(|| serde_json::Number::from(0)),
+                        )),
                         target_type: CoercionTargetType::Percentage,
                         success: true,
                         error_message: None,
@@ -471,9 +481,9 @@ impl Resolver {
 
     /// Create a new resolver with custom validation config
     pub fn with_validation_config(
-        config: &ExtractConfig, 
-        fence_output: bool, 
-        validation_config: ValidationConfig
+        config: &ExtractConfig,
+        fence_output: bool,
+        validation_config: ValidationConfig,
     ) -> LangExtractResult<Self> {
         // Create raw outputs directory if it doesn't exist
         if validation_config.save_raw_outputs {
@@ -498,17 +508,21 @@ impl Resolver {
     }
 
     /// Save raw model output to a file for debugging/recovery
-    pub fn save_raw_output(&self, raw_output: &str, metadata: Option<&str>) -> LangExtractResult<String> {
+    pub fn save_raw_output(
+        &self,
+        raw_output: &str,
+        metadata: Option<&str>,
+    ) -> LangExtractResult<String> {
         if !self.validation_config.save_raw_outputs {
-            return Err(LangExtractError::configuration("Raw output saving is disabled"));
+            return Err(LangExtractError::configuration(
+                "Raw output saving is disabled",
+            ));
         }
 
         // Ensure output directory exists
         let output_dir = Path::new(&self.validation_config.raw_outputs_dir);
         if !output_dir.exists() {
-            fs::create_dir_all(output_dir).map_err(|e| {
-                LangExtractError::IoError(e)
-            })?;
+            fs::create_dir_all(output_dir).map_err(|e| LangExtractError::IoError(e))?;
         }
 
         let timestamp = chrono::Utc::now().format("%Y%m%d_%H%M%S").to_string();
@@ -528,9 +542,7 @@ impl Resolver {
         content.push_str(raw_output);
         content.push_str("\n=== End Output ===\n");
 
-        fs::write(&filepath, content).map_err(|e| {
-            LangExtractError::IoError(e)
-        })?;
+        fs::write(&filepath, content).map_err(|e| LangExtractError::IoError(e))?;
 
         let path_str = filepath.to_string_lossy().to_string();
         log::info!("Saved raw output to: {}", path_str);
@@ -538,7 +550,11 @@ impl Resolver {
     }
 
     /// Validate and parse model response with raw data preservation
-    pub fn validate_and_parse(&self, raw_response: &str, expected_fields: &[String]) -> LangExtractResult<(Vec<Extraction>, ValidationResult)> {
+    pub fn validate_and_parse(
+        &self,
+        raw_response: &str,
+        expected_fields: &[String],
+    ) -> LangExtractResult<(Vec<Extraction>, ValidationResult)> {
         // Step 1: Always save raw output first if enabled
         let raw_file_path = if self.validation_config.save_raw_outputs {
             match self.save_raw_output(raw_response, Some("validation_parse")) {
@@ -558,11 +574,14 @@ impl Resolver {
         // Step 2: Attempt to parse the response with enhanced cleaning and repair
         println!("🔍 Parsing model response...");
         let parse_result = self.parse_response_with_repair(raw_response, expected_fields);
-        
+
         // Step 3: Validate the parsed data
         let mut validation_result = match &parse_result {
             Ok(extractions) => {
-                println!("✅ Successfully parsed {} potential extractions", extractions.len());
+                println!(
+                    "✅ Successfully parsed {} potential extractions",
+                    extractions.len()
+                );
                 self.validate_extractions(extractions, expected_fields)
             }
             Err(parse_error) => {
@@ -627,7 +646,11 @@ impl Resolver {
     }
 
     /// Detect and repair malformed JSON where multiple extraction classes are crammed into a single extraction_text
-    fn detect_and_repair_malformed_json(&self, json: &serde_json::Value, expected_fields: &[String]) -> Option<serde_json::Value> {
+    fn detect_and_repair_malformed_json(
+        &self,
+        json: &serde_json::Value,
+        expected_fields: &[String],
+    ) -> Option<serde_json::Value> {
         // Check if this looks like malformed JSON where multiple classes are in a single extraction_text
         if let Some(obj) = json.as_object() {
             // Only proceed if we have exactly one key-value pair
@@ -676,7 +699,12 @@ impl Resolver {
                                             if let Some(value_match) = captures.get(1) {
                                                 let value = value_match.as_str().trim();
                                                 if !value.is_empty() {
-                                                    repaired_obj.insert(field.clone(), serde_json::Value::String(value.to_string()));
+                                                    repaired_obj.insert(
+                                                        field.clone(),
+                                                        serde_json::Value::String(
+                                                            value.to_string(),
+                                                        ),
+                                                    );
                                                     break;
                                                 }
                                             }
@@ -686,7 +714,10 @@ impl Resolver {
                             }
 
                             if !repaired_obj.is_empty() {
-                                println!("✅ Successfully repaired malformed JSON, extracted {} fields", repaired_obj.len());
+                                println!(
+                                    "✅ Successfully repaired malformed JSON, extracted {} fields",
+                                    repaired_obj.len()
+                                );
                                 return Some(serde_json::Value::Object(repaired_obj));
                             }
                         }
@@ -694,22 +725,30 @@ impl Resolver {
                 }
             }
         }
-
         None // No repair needed
     }
 
     /// Parse response with enhanced cleaning and repair capabilities
-    fn parse_response_with_repair(&self, response: &str, expected_fields: &[String]) -> LangExtractResult<Vec<Extraction>> {
+    fn parse_response_with_repair(
+        &self,
+        response: &str,
+        expected_fields: &[String],
+    ) -> LangExtractResult<Vec<Extraction>> {
         // First, clean the response (remove code fences, etc.)
         let cleaned_response = self.clean_response(response);
-        println!("🧹 Cleaned response length: {} chars", cleaned_response.len());
+        println!(
+            "🧹 Cleaned response length: {} chars",
+            cleaned_response.len()
+        );
 
         // Try to parse as JSON first
         if let Ok(json_value) = serde_json::from_str::<serde_json::Value>(&cleaned_response) {
             println!("📄 Parsed JSON successfully");
 
             // Check if the JSON needs repair (malformed case with multiple classes in single extraction_text)
-            if let Some(repaired_json) = self.detect_and_repair_malformed_json(&json_value, expected_fields) {
+            if let Some(repaired_json) =
+                self.detect_and_repair_malformed_json(&json_value, expected_fields)
+            {
                 println!("🔧 Applied JSON repair logic");
                 return self.parse_json_response(&repaired_json);
             } else {
@@ -725,7 +764,9 @@ impl Resolver {
                     println!("📄 Extracted and parsed JSON from wrapped content");
 
                     // Check if the extracted JSON needs repair
-                    if let Some(repaired_json) = self.detect_and_repair_malformed_json(&json_value, expected_fields) {
+                    if let Some(repaired_json) =
+                        self.detect_and_repair_malformed_json(&json_value, expected_fields)
+                    {
                         println!("🔧 Applied JSON repair logic to extracted content");
                         return self.parse_json_response(&repaired_json);
                     } else {
@@ -735,12 +776,11 @@ impl Resolver {
             }
         }
 
-        Err(LangExtractError::parsing(
-            format!("Could not parse response as JSON after cleaning: {}", cleaned_response)
-        ))
+        Err(LangExtractError::parsing(format!(
+            "Could not parse response as JSON after cleaning: {}",
+            cleaned_response
+        )))
     }
-
-
 
     /// Parse JSON response into extractions
     fn parse_json_response(&self, json: &serde_json::Value) -> LangExtractResult<Vec<Extraction>> {
@@ -777,26 +817,40 @@ impl Resolver {
     }
 
     /// Parse a single item (object or primitive) into extractions
-    fn parse_single_item(&self, item: &serde_json::Value, index: Option<usize>) -> LangExtractResult<Vec<Extraction>> {
+    fn parse_single_item(
+        &self,
+        item: &serde_json::Value,
+        index: Option<usize>,
+    ) -> LangExtractResult<Vec<Extraction>> {
         let mut extractions = Vec::new();
 
         match item {
             Value::Object(obj) => {
-                for (key, value) in obj {
-                    let extraction_text = match value {
-                        Value::String(s) => s.clone(),
-                        Value::Number(n) => n.to_string(),
-                        Value::Bool(b) => b.to_string(),
-                        Value::Array(_) | Value::Object(_) => value.to_string(),
-                        Value::Null => continue,
-                    };
+                let mut extraction = Extraction::default();
 
-                    let mut extraction = Extraction::new(key.clone(), extraction_text);
-                    if let Some(idx) = index {
-                        extraction.group_index = Some(idx);
-                    }
-                    extractions.push(extraction);
+                if let Some(idx) = index {
+                    extraction.group_index = Some(idx);
                 }
+
+                for (key, value) in obj {
+                    if key.ends_with(ATTRIBUTES_SUFFIX) {
+                        extraction.attributes = value.as_object().map(|serde_map| {
+                            // 将 serde_json::Map 转换为迭代器（消耗自身，逐个取出键值对）
+                            serde_map.into_iter().map(|(k, v)| (k.clone(), v.clone())).collect() // 直接收集为 HashMap<String, Value>
+                        })
+                    } else {
+                        let extraction_text = match value {
+                            Value::String(s) => s.clone(),
+                            Value::Number(n) => n.to_string(),
+                            Value::Bool(b) => b.to_string(),
+                            Value::Array(_) | Value::Object(_) => value.to_string(),
+                            Value::Null => continue,
+                        };
+                        extraction.extraction_text = extraction_text;
+                        extraction.extraction_class = key.clone();
+                    }
+                }
+                extractions.push(extraction);
             }
             Value::String(s) => {
                 let extraction_class = if let Some(idx) = index {
@@ -807,9 +861,10 @@ impl Resolver {
                 extractions.push(Extraction::new(extraction_class, s.clone()));
             }
             _ => {
-                return Err(LangExtractError::parsing(
-                    format!("Unsupported item type: {:?}", item)
-                ));
+                return Err(LangExtractError::parsing(format!(
+                    "Unsupported item type: {:?}",
+                    item
+                )));
             }
         }
 
@@ -817,7 +872,11 @@ impl Resolver {
     }
 
     /// Validate extractions against expected schema
-    fn validate_extractions(&self, extractions: &[Extraction], expected_fields: &[String]) -> ValidationResult {
+    fn validate_extractions(
+        &self,
+        extractions: &[Extraction],
+        expected_fields: &[String],
+    ) -> ValidationResult {
         let mut errors = Vec::new();
         let mut warnings = Vec::new();
         let mut is_valid = true;
@@ -825,9 +884,9 @@ impl Resolver {
 
         // Check for required fields if enabled
         if self.validation_config.require_all_fields {
-            let extraction_classes: std::collections::HashSet<_> = 
+            let extraction_classes: std::collections::HashSet<_> =
                 extractions.iter().map(|e| &e.extraction_class).collect();
-            
+
             for expected_field in expected_fields {
                 if !extraction_classes.contains(expected_field) {
                     errors.push(ValidationError {
@@ -846,7 +905,10 @@ impl Resolver {
             // Check for empty extraction text
             if extraction.extraction_text.trim().is_empty() {
                 warnings.push(ValidationWarning {
-                    message: format!("Empty extraction text for field '{}'", extraction.extraction_class),
+                    message: format!(
+                        "Empty extraction text for field '{}'",
+                        extraction.extraction_class
+                    ),
                     field_path: Some(extraction.extraction_class.clone()),
                 });
             }
@@ -854,18 +916,20 @@ impl Resolver {
             // Check extraction text length
             if extraction.extraction_text.len() > 1000 {
                 warnings.push(ValidationWarning {
-                    message: format!("Very long extraction text ({} chars) for field '{}'", 
-                        extraction.extraction_text.len(), extraction.extraction_class),
+                    message: format!(
+                        "Very long extraction text ({} chars) for field '{}'",
+                        extraction.extraction_text.len(),
+                        extraction.extraction_class
+                    ),
                     field_path: Some(extraction.extraction_class.clone()),
                 });
             }
 
             // Attempt type coercion if enabled
             if self.validation_config.enable_type_coercion {
-                let coercion_result = self.type_coercer.coerce_value(
-                    &extraction.extraction_class, 
-                    &extraction.extraction_text
-                );
+                let coercion_result = self
+                    .type_coercer
+                    .coerce_value(&extraction.extraction_class, &extraction.extraction_text);
                 coercion_details.push(coercion_result);
             }
         }
@@ -873,37 +937,44 @@ impl Resolver {
         // Quality check - too few extractions might indicate poor model performance
         if extractions.len() < expected_fields.len() / 2 {
             warnings.push(ValidationWarning {
-                message: format!("Low extraction count: found {} but expected around {}", 
-                    extractions.len(), expected_fields.len()),
+                message: format!(
+                    "Low extraction count: found {} but expected around {}",
+                    extractions.len(),
+                    expected_fields.len()
+                ),
                 field_path: None,
             });
         }
 
         // Build corrected data from coerced values
-        let corrected_data = if !coercion_details.is_empty() && coercion_details.iter().any(|d| d.success) {
-            let mut corrected_obj = serde_json::Map::new();
-            
-            for detail in &coercion_details {
-                if detail.success {
-                    if let Some(ref coerced_value) = detail.coerced_value {
-                        corrected_obj.insert(detail.field_name.clone(), coerced_value.clone());
+        let corrected_data =
+            if !coercion_details.is_empty() && coercion_details.iter().any(|d| d.success) {
+                let mut corrected_obj = serde_json::Map::new();
+
+                for detail in &coercion_details {
+                    if detail.success {
+                        if let Some(ref coerced_value) = detail.coerced_value {
+                            corrected_obj.insert(detail.field_name.clone(), coerced_value.clone());
+                        }
+                    } else {
+                        // Keep original value as string if coercion failed
+                        corrected_obj.insert(
+                            detail.field_name.clone(),
+                            Value::String(detail.original_value.clone()),
+                        );
                     }
-                } else {
-                    // Keep original value as string if coercion failed
-                    corrected_obj.insert(detail.field_name.clone(), Value::String(detail.original_value.clone()));
                 }
-            }
-            
-            Some(Value::Object(corrected_obj))
-        } else {
-            None
-        };
+
+                Some(Value::Object(corrected_obj))
+            } else {
+                None
+            };
 
         // Create coercion summary
         let coercion_summary = if !coercion_details.is_empty() {
             let successful_coercions = coercion_details.iter().filter(|d| d.success).count();
             let failed_coercions = coercion_details.len() - successful_coercions;
-            
+
             Some(CoercionSummary {
                 successful_coercions,
                 failed_coercions,
@@ -968,14 +1039,14 @@ mod tests {
     fn test_raw_output_saving() {
         let temp_dir = TempDir::new().unwrap();
         let resolver = create_test_resolver_with_temp_dir(&temp_dir);
-        
+
         let test_output = r#"{"person": "John Doe", "age": "30"}"#;
         let result = resolver.save_raw_output(test_output, Some("test_metadata"));
-        
+
         assert!(result.is_ok());
         let file_path = result.unwrap();
         assert!(std::path::Path::new(&file_path).exists());
-        
+
         let content = fs::read_to_string(&file_path).unwrap();
         assert!(content.contains("Raw Model Output"));
         assert!(content.contains("test_metadata"));
@@ -990,20 +1061,28 @@ mod tests {
 
         let result = resolver.parse_response_with_repair(json_response, &expected_fields);
         assert!(result.is_ok());
-        
+
         let extractions = result.unwrap();
         assert_eq!(extractions.len(), 2);
-        
+
         // Check that we have both fields (order may vary)
-        let classes: std::collections::HashSet<_> = extractions.iter()
-            .map(|e| e.extraction_class.as_str()).collect();
+        let classes: std::collections::HashSet<_> = extractions
+            .iter()
+            .map(|e| e.extraction_class.as_str())
+            .collect();
         assert!(classes.contains("person"));
         assert!(classes.contains("age"));
-        
+
         // Check the values
-        let person_extraction = extractions.iter().find(|e| e.extraction_class == "person").unwrap();
+        let person_extraction = extractions
+            .iter()
+            .find(|e| e.extraction_class == "person")
+            .unwrap();
         assert_eq!(person_extraction.extraction_text, "John Doe");
-        let age_extraction = extractions.iter().find(|e| e.extraction_class == "age").unwrap();
+        let age_extraction = extractions
+            .iter()
+            .find(|e| e.extraction_class == "age")
+            .unwrap();
         assert_eq!(age_extraction.extraction_text, "30");
     }
 
@@ -1015,20 +1094,28 @@ mod tests {
 
         let result = resolver.parse_response_with_repair(json_response, &expected_fields);
         assert!(result.is_ok());
-        
+
         let extractions = result.unwrap();
         assert_eq!(extractions.len(), 2);
-        
+
         // Check that we have both fields (order may vary)
-        let classes: std::collections::HashSet<_> = extractions.iter()
-            .map(|e| e.extraction_class.as_str()).collect();
+        let classes: std::collections::HashSet<_> = extractions
+            .iter()
+            .map(|e| e.extraction_class.as_str())
+            .collect();
         assert!(classes.contains("name"));
         assert!(classes.contains("city"));
-        
+
         // Check the values
-        let name_extraction = extractions.iter().find(|e| e.extraction_class == "name").unwrap();
+        let name_extraction = extractions
+            .iter()
+            .find(|e| e.extraction_class == "name")
+            .unwrap();
         assert_eq!(name_extraction.extraction_text, "Alice");
-        let city_extraction = extractions.iter().find(|e| e.extraction_class == "city").unwrap();
+        let city_extraction = extractions
+            .iter()
+            .find(|e| e.extraction_class == "city")
+            .unwrap();
         assert_eq!(city_extraction.extraction_text, "NYC");
     }
 
@@ -1045,15 +1132,13 @@ mod tests {
     #[test]
     fn test_validation_required_fields() {
         let resolver = create_test_resolver();
-        let extractions = vec![
-            Extraction::new("person".to_string(), "John".to_string()),
-        ];
+        let extractions = vec![Extraction::new("person".to_string(), "John".to_string())];
         let expected_fields = vec!["person".to_string(), "age".to_string()];
-        
+
         // Test with require_all_fields = false (default)
         let result = resolver.validate_extractions(&extractions, &expected_fields);
         assert!(result.is_valid); // Should pass because require_all_fields is false
-        
+
         // Test with require_all_fields = true
         let config = create_test_config();
         let validation_config = ValidationConfig {
@@ -1076,7 +1161,7 @@ mod tests {
             Extraction::new("age".to_string(), "25".to_string()),
         ];
         let expected_fields = vec!["person".to_string(), "age".to_string()];
-        
+
         let result = resolver.validate_extractions(&extractions, &expected_fields);
         assert!(result.is_valid); // Valid despite warnings
         assert_eq!(result.warnings.len(), 1); // One warning for empty text
@@ -1086,38 +1171,39 @@ mod tests {
     #[test]
     fn test_validation_low_extraction_count() {
         let resolver = create_test_resolver();
-        let extractions = vec![
-            Extraction::new("person".to_string(), "John".to_string()),
-        ];
+        let extractions = vec![Extraction::new("person".to_string(), "John".to_string())];
         let expected_fields = vec![
-            "person".to_string(), 
-            "age".to_string(), 
-            "city".to_string(), 
-            "email".to_string()
+            "person".to_string(),
+            "age".to_string(),
+            "city".to_string(),
+            "email".to_string(),
         ]; // 4 expected, only 1 found
-        
+
         let result = resolver.validate_extractions(&extractions, &expected_fields);
         assert!(result.is_valid); // Still valid, just warnings
         assert!(!result.warnings.is_empty());
-        assert!(result.warnings.iter().any(|w| w.message.contains("Low extraction count")));
+        assert!(result
+            .warnings
+            .iter()
+            .any(|w| w.message.contains("Low extraction count")));
     }
 
     #[test]
     fn test_validate_and_parse_success() {
         let temp_dir = TempDir::new().unwrap();
         let resolver = create_test_resolver_with_temp_dir(&temp_dir);
-        
+
         let valid_json = r#"{"person": "John Doe", "age": "30"}"#;
         let expected_fields = vec!["person".to_string(), "age".to_string()];
-        
+
         let result = resolver.validate_and_parse(valid_json, &expected_fields);
         assert!(result.is_ok());
-        
+
         let (extractions, validation_result) = result.unwrap();
         assert_eq!(extractions.len(), 2);
         assert!(validation_result.is_valid);
         assert!(validation_result.raw_output_file.is_some());
-        
+
         // Verify the raw output file was created
         let raw_file = validation_result.raw_output_file.unwrap();
         assert!(std::path::Path::new(&raw_file).exists());
@@ -1147,7 +1233,10 @@ mod tests {
             (r#"```yaml{"name": "John"}```"#, r#"{"name": "John"}"#),
             (r#"```{"name": "John"}```"#, r#"{"name": "John"}"#),
             (r#"```python{"name": "John"}```"#, r#"{"name": "John"}"#),
-            (r#"Some text ```json{"name": "John"}``` more text"#, r#"Some text {"name": "John"} more text"#),
+            (
+                r#"Some text ```json{"name": "John"}``` more text"#,
+                r#"Some text {"name": "John"} more text"#,
+            ),
         ];
 
         for (input, expected) in test_cases {
@@ -1191,8 +1280,12 @@ mod tests {
             "city": "New York"
         });
 
-        let repaired = resolver.detect_and_repair_malformed_json(&well_formed_json, &expected_fields);
-        assert!(repaired.is_none(), "Well-formed JSON should not be repaired");
+        let repaired =
+            resolver.detect_and_repair_malformed_json(&well_formed_json, &expected_fields);
+        assert!(
+            repaired.is_none(),
+            "Well-formed JSON should not be repaired"
+        );
     }
 
     #[test]
@@ -1215,8 +1308,14 @@ mod tests {
         let extractions = result.unwrap();
         assert_eq!(extractions.len(), 2, "Should extract 2 fields");
 
-        let names: Vec<_> = extractions.iter().filter(|e| e.extraction_class == "name").collect();
-        let ages: Vec<_> = extractions.iter().filter(|e| e.extraction_class == "age").collect();
+        let names: Vec<_> = extractions
+            .iter()
+            .filter(|e| e.extraction_class == "name")
+            .collect();
+        let ages: Vec<_> = extractions
+            .iter()
+            .filter(|e| e.extraction_class == "age")
+            .collect();
 
         assert_eq!(names.len(), 1);
         assert_eq!(ages.len(), 1);
@@ -1228,7 +1327,11 @@ mod tests {
     fn test_parse_response_with_malformed_repair() {
         let temp_dir = TempDir::new().unwrap();
         let resolver = create_test_resolver_with_temp_dir(&temp_dir);
-        let expected_fields = vec!["name".to_string(), "age".to_string(), "profession".to_string()];
+        let expected_fields = vec![
+            "name".to_string(),
+            "age".to_string(),
+            "profession".to_string(),
+        ];
 
         // Test parsing malformed response that should be repaired
         let malformed_response = r#"{
@@ -1236,14 +1339,27 @@ mod tests {
 }"#;
 
         let result = resolver.parse_response_with_repair(malformed_response, &expected_fields);
-        assert!(result.is_ok(), "Should parse and repair malformed JSON successfully");
+        assert!(
+            result.is_ok(),
+            "Should parse and repair malformed JSON successfully"
+        );
 
         let extractions = result.unwrap();
-        assert_eq!(extractions.len(), 3, "Should extract 3 separate fields after repair");
+        assert_eq!(
+            extractions.len(),
+            3,
+            "Should extract 3 separate fields after repair"
+        );
 
-        let name_found = extractions.iter().any(|e| e.extraction_class == "name" && e.extraction_text == "Bob Smith");
-        let age_found = extractions.iter().any(|e| e.extraction_class == "age" && e.extraction_text == "35");
-        let profession_found = extractions.iter().any(|e| e.extraction_class == "profession" && e.extraction_text == "engineer");
+        let name_found = extractions
+            .iter()
+            .any(|e| e.extraction_class == "name" && e.extraction_text == "Bob Smith");
+        let age_found = extractions
+            .iter()
+            .any(|e| e.extraction_class == "age" && e.extraction_text == "35");
+        let profession_found = extractions
+            .iter()
+            .any(|e| e.extraction_class == "profession" && e.extraction_text == "engineer");
 
         assert!(name_found, "Should find extracted name");
         assert!(age_found, "Should find extracted age");
@@ -1273,20 +1389,31 @@ mod tests {
                 Extraction::new("year".to_string(), "2024".to_string()),
             ];
             let expected_fields = vec!["age".to_string(), "count".to_string(), "year".to_string()];
-            
+
             let result = resolver.validate_extractions(&extractions, &expected_fields);
             assert!(result.is_valid);
-            
+
             let coercion_summary = result.coercion_summary.unwrap();
             assert_eq!(coercion_summary.successful_coercions, 3);
             assert_eq!(coercion_summary.failed_coercions, 0);
-            
+
             // Check specific coercions
-            let age_coercion = coercion_summary.coercion_details.iter()
-                .find(|d| d.field_name == "age").unwrap();
+            let age_coercion = coercion_summary
+                .coercion_details
+                .iter()
+                .find(|d| d.field_name == "age")
+                .unwrap();
             assert!(age_coercion.success);
             assert_eq!(age_coercion.target_type, CoercionTargetType::Integer);
-            assert_eq!(age_coercion.coerced_value.as_ref().unwrap().as_i64().unwrap(), 25);
+            assert_eq!(
+                age_coercion
+                    .coerced_value
+                    .as_ref()
+                    .unwrap()
+                    .as_i64()
+                    .unwrap(),
+                25
+            );
         }
 
         #[test]
@@ -1297,19 +1424,36 @@ mod tests {
                 Extraction::new("percentage".to_string(), "-12.5".to_string()),
                 Extraction::new("scientific".to_string(), "1.23e-4".to_string()),
             ];
-            let expected_fields = vec!["score".to_string(), "percentage".to_string(), "scientific".to_string()];
-            
+            let expected_fields = vec![
+                "score".to_string(),
+                "percentage".to_string(),
+                "scientific".to_string(),
+            ];
+
             let result = resolver.validate_extractions(&extractions, &expected_fields);
             assert!(result.is_valid);
-            
+
             let coercion_summary = result.coercion_summary.unwrap();
             assert_eq!(coercion_summary.successful_coercions, 3);
-            
-            let score_coercion = coercion_summary.coercion_details.iter()
-                .find(|d| d.field_name == "score").unwrap();
+
+            let score_coercion = coercion_summary
+                .coercion_details
+                .iter()
+                .find(|d| d.field_name == "score")
+                .unwrap();
             assert!(score_coercion.success);
             assert_eq!(score_coercion.target_type, CoercionTargetType::Float);
-            assert!((score_coercion.coerced_value.as_ref().unwrap().as_f64().unwrap() - 94.7).abs() < 0.01);
+            assert!(
+                (score_coercion
+                    .coerced_value
+                    .as_ref()
+                    .unwrap()
+                    .as_f64()
+                    .unwrap()
+                    - 94.7)
+                    .abs()
+                    < 0.01
+            );
         }
 
         #[test]
@@ -1323,19 +1467,37 @@ mod tests {
                 Extraction::new("binary".to_string(), "1".to_string()),
                 Extraction::new("zero".to_string(), "0".to_string()),
             ];
-            let expected_fields = vec!["active".to_string(), "enabled".to_string(), "disabled".to_string(), "off".to_string(), "binary".to_string(), "zero".to_string()];
-            
+            let expected_fields = vec![
+                "active".to_string(),
+                "enabled".to_string(),
+                "disabled".to_string(),
+                "off".to_string(),
+                "binary".to_string(),
+                "zero".to_string(),
+            ];
+
             let result = resolver.validate_extractions(&extractions, &expected_fields);
             assert!(result.is_valid);
-            
+
             let coercion_summary = result.coercion_summary.unwrap();
             assert_eq!(coercion_summary.successful_coercions, 6);
-            
-            let active_coercion = coercion_summary.coercion_details.iter()
-                .find(|d| d.field_name == "active").unwrap();
+
+            let active_coercion = coercion_summary
+                .coercion_details
+                .iter()
+                .find(|d| d.field_name == "active")
+                .unwrap();
             assert!(active_coercion.success);
             assert_eq!(active_coercion.target_type, CoercionTargetType::Boolean);
-            assert_eq!(active_coercion.coerced_value.as_ref().unwrap().as_bool().unwrap(), true);
+            assert_eq!(
+                active_coercion
+                    .coerced_value
+                    .as_ref()
+                    .unwrap()
+                    .as_bool()
+                    .unwrap(),
+                true
+            );
         }
 
         #[test]
@@ -1348,19 +1510,38 @@ mod tests {
                 Extraction::new("value".to_string(), "500K".to_string()),
                 Extraction::new("debt".to_string(), "$1.2 billion".to_string()),
             ];
-            let expected_fields = vec!["funding".to_string(), "budget".to_string(), "salary".to_string(), "value".to_string(), "debt".to_string()];
-            
+            let expected_fields = vec![
+                "funding".to_string(),
+                "budget".to_string(),
+                "salary".to_string(),
+                "value".to_string(),
+                "debt".to_string(),
+            ];
+
             let result = resolver.validate_extractions(&extractions, &expected_fields);
             assert!(result.is_valid);
-            
+
             let coercion_summary = result.coercion_summary.unwrap();
             assert_eq!(coercion_summary.successful_coercions, 5);
-            
-            let funding_coercion = coercion_summary.coercion_details.iter()
-                .find(|d| d.field_name == "funding").unwrap();
+
+            let funding_coercion = coercion_summary
+                .coercion_details
+                .iter()
+                .find(|d| d.field_name == "funding")
+                .unwrap();
             assert!(funding_coercion.success);
             assert_eq!(funding_coercion.target_type, CoercionTargetType::Currency);
-            assert!((funding_coercion.coerced_value.as_ref().unwrap().as_f64().unwrap() - 1_500_000.0).abs() < 1.0);
+            assert!(
+                (funding_coercion
+                    .coerced_value
+                    .as_ref()
+                    .unwrap()
+                    .as_f64()
+                    .unwrap()
+                    - 1_500_000.0)
+                    .abs()
+                    < 1.0
+            );
         }
 
         #[test]
@@ -1371,19 +1552,39 @@ mod tests {
                 Extraction::new("completion".to_string(), "100%".to_string()),
                 Extraction::new("error_rate".to_string(), "0.5%".to_string()),
             ];
-            let expected_fields = vec!["accuracy".to_string(), "completion".to_string(), "error_rate".to_string()];
-            
+            let expected_fields = vec![
+                "accuracy".to_string(),
+                "completion".to_string(),
+                "error_rate".to_string(),
+            ];
+
             let result = resolver.validate_extractions(&extractions, &expected_fields);
             assert!(result.is_valid);
-            
+
             let coercion_summary = result.coercion_summary.unwrap();
             assert_eq!(coercion_summary.successful_coercions, 3);
-            
-            let accuracy_coercion = coercion_summary.coercion_details.iter()
-                .find(|d| d.field_name == "accuracy").unwrap();
+
+            let accuracy_coercion = coercion_summary
+                .coercion_details
+                .iter()
+                .find(|d| d.field_name == "accuracy")
+                .unwrap();
             assert!(accuracy_coercion.success);
-            assert_eq!(accuracy_coercion.target_type, CoercionTargetType::Percentage);
-            assert!((accuracy_coercion.coerced_value.as_ref().unwrap().as_f64().unwrap() - 0.947).abs() < 0.001);
+            assert_eq!(
+                accuracy_coercion.target_type,
+                CoercionTargetType::Percentage
+            );
+            assert!(
+                (accuracy_coercion
+                    .coerced_value
+                    .as_ref()
+                    .unwrap()
+                    .as_f64()
+                    .unwrap()
+                    - 0.947)
+                    .abs()
+                    < 0.001
+            );
         }
 
         #[test]
@@ -1394,21 +1595,36 @@ mod tests {
                 Extraction::new("support".to_string(), "support@company.org".to_string()),
                 Extraction::new("invalid".to_string(), "not-an-email".to_string()),
             ];
-            let expected_fields = vec!["contact".to_string(), "support".to_string(), "invalid".to_string()];
-            
+            let expected_fields = vec![
+                "contact".to_string(),
+                "support".to_string(),
+                "invalid".to_string(),
+            ];
+
             let result = resolver.validate_extractions(&extractions, &expected_fields);
             assert!(result.is_valid);
-            
+
             let coercion_summary = result.coercion_summary.unwrap();
             assert_eq!(coercion_summary.successful_coercions, 2); // Only 2 valid emails
             assert_eq!(coercion_summary.failed_coercions, 1);
-            
-            let contact_coercion = coercion_summary.coercion_details.iter()
-                .find(|d| d.field_name == "contact").unwrap();
+
+            let contact_coercion = coercion_summary
+                .coercion_details
+                .iter()
+                .find(|d| d.field_name == "contact")
+                .unwrap();
             assert!(contact_coercion.success);
             assert_eq!(contact_coercion.target_type, CoercionTargetType::Email);
-            let coerced_obj = contact_coercion.coerced_value.as_ref().unwrap().as_object().unwrap();
-            assert_eq!(coerced_obj.get("email").unwrap().as_str().unwrap(), "john.doe@example.com");
+            let coerced_obj = contact_coercion
+                .coerced_value
+                .as_ref()
+                .unwrap()
+                .as_object()
+                .unwrap();
+            assert_eq!(
+                coerced_obj.get("email").unwrap().as_str().unwrap(),
+                "john.doe@example.com"
+            );
         }
 
         #[test]
@@ -1421,21 +1637,38 @@ mod tests {
                 Extraction::new("phone4".to_string(), "6175551234".to_string()),
                 Extraction::new("invalid".to_string(), "123-45".to_string()),
             ];
-            let expected_fields = vec!["phone1".to_string(), "phone2".to_string(), "phone3".to_string(), "phone4".to_string(), "invalid".to_string()];
-            
+            let expected_fields = vec![
+                "phone1".to_string(),
+                "phone2".to_string(),
+                "phone3".to_string(),
+                "phone4".to_string(),
+                "invalid".to_string(),
+            ];
+
             let result = resolver.validate_extractions(&extractions, &expected_fields);
             assert!(result.is_valid);
-            
+
             let coercion_summary = result.coercion_summary.unwrap();
             assert_eq!(coercion_summary.successful_coercions, 4); // 4 valid phone numbers
             assert_eq!(coercion_summary.failed_coercions, 1);
-            
-            let phone1_coercion = coercion_summary.coercion_details.iter()
-                .find(|d| d.field_name == "phone1").unwrap();
+
+            let phone1_coercion = coercion_summary
+                .coercion_details
+                .iter()
+                .find(|d| d.field_name == "phone1")
+                .unwrap();
             assert!(phone1_coercion.success);
             assert_eq!(phone1_coercion.target_type, CoercionTargetType::PhoneNumber);
-            let coerced_obj = phone1_coercion.coerced_value.as_ref().unwrap().as_object().unwrap();
-            assert_eq!(coerced_obj.get("phone").unwrap().as_str().unwrap(), "(617) 555-1234");
+            let coerced_obj = phone1_coercion
+                .coerced_value
+                .as_ref()
+                .unwrap()
+                .as_object()
+                .unwrap();
+            assert_eq!(
+                coerced_obj.get("phone").unwrap().as_str().unwrap(),
+                "(617) 555-1234"
+            );
         }
 
         #[test]
@@ -1446,13 +1679,12 @@ mod tests {
                 save_raw_outputs: false,
                 ..Default::default()
             };
-            let resolver = Resolver::with_validation_config(&config, true, validation_config).unwrap();
-            
-            let extractions = vec![
-                Extraction::new("age".to_string(), "25".to_string()),
-            ];
+            let resolver =
+                Resolver::with_validation_config(&config, true, validation_config).unwrap();
+
+            let extractions = vec![Extraction::new("age".to_string(), "25".to_string())];
             let expected_fields = vec!["age".to_string()];
-            
+
             let result = resolver.validate_extractions(&extractions, &expected_fields);
             assert!(result.is_valid);
             assert!(result.coercion_summary.is_none()); // No coercion attempted
@@ -1468,17 +1700,25 @@ mod tests {
                 Extraction::new("invalid_number".to_string(), "abc123".to_string()), // Should fail coercion
                 Extraction::new("percentage".to_string(), "95%".to_string()), // Should coerce to percentage
             ];
-            let expected_fields = vec!["age".to_string(), "name".to_string(), "email".to_string(), "invalid_number".to_string(), "percentage".to_string()];
-            
+            let expected_fields = vec![
+                "age".to_string(),
+                "name".to_string(),
+                "email".to_string(),
+                "invalid_number".to_string(),
+                "percentage".to_string(),
+            ];
+
             let result = resolver.validate_extractions(&extractions, &expected_fields);
             assert!(result.is_valid);
-            
+
             let coercion_summary = result.coercion_summary.unwrap();
             assert_eq!(coercion_summary.successful_coercions, 3); // age, email, percentage
             assert_eq!(coercion_summary.failed_coercions, 2); // name, invalid_number
-            
+
             // Check that successful coercions have the right types
-            let successful_types: Vec<_> = coercion_summary.coercion_details.iter()
+            let successful_types: Vec<_> = coercion_summary
+                .coercion_details
+                .iter()
                 .filter(|d| d.success)
                 .map(|d| &d.target_type)
                 .collect();
@@ -1496,22 +1736,33 @@ mod tests {
                 Extraction::new("active".to_string(), "true".to_string()),
                 Extraction::new("invalid".to_string(), "not_a_number".to_string()),
             ];
-            let expected_fields = vec!["age".to_string(), "price".to_string(), "active".to_string(), "invalid".to_string()];
-            
+            let expected_fields = vec![
+                "age".to_string(),
+                "price".to_string(),
+                "active".to_string(),
+                "invalid".to_string(),
+            ];
+
             let result = resolver.validate_extractions(&extractions, &expected_fields);
             assert!(result.is_valid);
-            
+
             // Check that corrected data was generated
             let corrected_data = result.corrected_data.unwrap();
             let corrected_obj = corrected_data.as_object().unwrap();
-            
+
             // Check coerced values
             assert_eq!(corrected_obj.get("age").unwrap().as_i64().unwrap(), 25);
             assert_eq!(corrected_obj.get("price").unwrap().as_f64().unwrap(), 19.99);
-            assert_eq!(corrected_obj.get("active").unwrap().as_bool().unwrap(), true);
-            
+            assert_eq!(
+                corrected_obj.get("active").unwrap().as_bool().unwrap(),
+                true
+            );
+
             // Check that failed coercion keeps original string value
-            assert_eq!(corrected_obj.get("invalid").unwrap().as_str().unwrap(), "not_a_number");
+            assert_eq!(
+                corrected_obj.get("invalid").unwrap().as_str().unwrap(),
+                "not_a_number"
+            );
         }
     }
 }

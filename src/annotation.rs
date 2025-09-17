@@ -63,7 +63,7 @@ impl Annotator {
         if debug {
             report_progress(ProgressEvent::Debug {
                 operation: "chunking".to_string(),
-                details: format!("Text length ({} chars) exceeds buffer limit ({} chars), using token-based chunking", 
+                details: format!("Text length ({} chars) exceeds buffer limit ({} chars), using token-based chunking",
                     text.len(), max_char_buffer),
             });
         }
@@ -90,24 +90,24 @@ impl Annotator {
     ) -> LangExtractResult<AnnotatedDocument> {
         // Build the prompt
         let prompt = self.build_prompt(text, additional_context)?;
-        
+
         // Report processing started
         report_progress(ProgressEvent::ProcessingStarted {
             text_length: text.len(),
             model: self.language_model.model_id().to_string(),
             provider: self.language_model.provider_name().to_string(),
         });
-        
+
         if debug {
             let prompt_preview = if prompt.len() > 200 {
-                format!("{}... (truncated, total length: {} chars)", 
+                format!("{}... (truncated, total length: {} chars)",
                     &prompt.chars().take(200).collect::<String>(), prompt.len())
             } else {
                 prompt.clone()
             };
             report_progress(ProgressEvent::Debug {
                 operation: "model_call".to_string(),
-                details: format!("Model: {}, Provider: {}, Prompt: {}", 
+                details: format!("Model: {}, Provider: {}, Prompt: {}",
                     self.language_model.model_id(),
                     self.language_model.provider_name(),
                     prompt_preview),
@@ -121,14 +121,14 @@ impl Annotator {
 
         // Call the language model
         let results = self.language_model.infer(&[prompt], &kwargs).await?;
-        
+
         report_progress(ProgressEvent::ModelResponse {
             success: true,
             output_length: results.first()
                 .and_then(|batch| batch.first())
                 .map(|output| output.text().len()),
         });
-        
+
         if debug {
             report_progress(ProgressEvent::Debug {
                 operation: "model_response".to_string(),
@@ -138,11 +138,11 @@ impl Annotator {
 
         // Extract the response
         let mut annotated_doc = AnnotatedDocument::with_extractions(Vec::new(), text.to_string());
-        
+
         if let Some(batch) = results.first() {
             if let Some(output) = batch.first() {
                 let response_text = output.text();
-                
+
                 if debug {
                     report_progress(ProgressEvent::Debug {
                         operation: "model_response".to_string(),
@@ -151,6 +151,7 @@ impl Annotator {
                 }
 
                 // Extract expected fields from examples for validation
+                // 只收集extraction_class的类别到expected_fields中
                 let expected_fields: Vec<String> = self.prompt_template.examples
                     .iter()
                     .flat_map(|example| example.extractions.iter())
@@ -200,9 +201,9 @@ impl Annotator {
                         let aligner = TextAligner::new();
                         let aligned_count = aligner.align_extractions(&mut extractions, text, 0)
                             .unwrap_or(0);
-                        
+
                         annotated_doc.extractions = Some(extractions);
-                        
+
                         // Update validation result with actual aligned count
                         report_progress(ProgressEvent::ValidationCompleted {
                             extractions_found: annotated_doc.extraction_count(),
@@ -245,28 +246,28 @@ impl Annotator {
         // Create tokenizer and tokenize the text
         let tokenizer = Tokenizer::new()?;
         let tokenized_text = tokenizer.tokenize(text)?;
-        
+
         // Create document for chunking
         let document = Document {
             document_id: None,
             text: text.to_string(),
             additional_context: None,
         };
-        
+
         // Create token-based chunk iterator
         let chunk_iter = ChunkIterator::new(&tokenized_text, &tokenizer, max_char_buffer, Some(&document))?;
-        
+
         // Collect chunks from iterator
         let token_chunks: Result<Vec<TokenChunk>, _> = chunk_iter.collect();
         let token_chunks = token_chunks?;
-        
+
         // Convert TokenChunks to TextChunks for compatibility with existing pipeline
         let mut text_chunks = Vec::new();
         for (i, token_chunk) in token_chunks.iter().enumerate() {
             let chunk_text = token_chunk.chunk_text(&tokenizer)?;
             let char_interval = token_chunk.char_interval(&tokenizer)?;
             let chunk_len = chunk_text.len();
-            
+
             let text_chunk = TextChunk {
                 id: i,
                 text: chunk_text,
@@ -278,14 +279,14 @@ impl Annotator {
             };
             text_chunks.push(text_chunk);
         }
-        
+
         // Report chunking started
         report_progress(ProgressEvent::ChunkingStarted {
             total_chars: text.len(),
             chunk_count: text_chunks.len(),
             strategy: "token-based".to_string(),
         });
-        
+
         if debug {
             for (i, chunk) in text_chunks.iter().enumerate() {
                 report_progress(ProgressEvent::Debug {
@@ -341,17 +342,17 @@ impl Annotator {
                 .collect();
 
             let batch_results = join_all(batch_futures).await;
-            
+
             for result in batch_results {
                 chunk_results.push(result?);
             }
 
             processed_chunks += chunk_batch.len();
-            
+
             if debug {
                 report_progress(ProgressEvent::Debug {
                     operation: "batch_processing".to_string(),
-                    details: format!("Batch {} processing completed ({}/{} chunks done)", 
+                    details: format!("Batch {} processing completed ({}/{} chunks done)",
                         batch_idx + 1, processed_chunks, total_chunks),
                 });
             }
@@ -365,7 +366,7 @@ impl Annotator {
                     details: format!("Running {} additional extraction passes", extraction_passes - 1),
                 });
             }
-            
+
             // TODO: Implement multi-pass extraction
             // For now, we just use the single pass results
         }
@@ -385,11 +386,11 @@ impl Annotator {
             total_extractions: final_result.extraction_count(),
             processing_time_ms: 0, // We don't track time here, but it's required
         });
-        
+
         if debug {
             report_progress(ProgressEvent::Debug {
                 operation: "aggregation".to_string(),
-                details: format!("Aggregated {} total extractions from {} chunks", 
+                details: format!("Aggregated {} total extractions from {} chunks",
                     final_result.extraction_count(), chunks.len()),
             });
         }
@@ -412,7 +413,7 @@ impl Annotator {
         match self.process_single_text(&chunk.text, resolver, additional_context, false).await {
             Ok(annotated_doc) => {
                 let mut extractions = annotated_doc.extractions.unwrap_or_default();
-                
+
                 // Align extractions with the chunk text
                 let aligner = TextAligner::new();
                 let aligned_count = aligner.align_chunk_extractions(
@@ -420,11 +421,11 @@ impl Annotator {
                     &chunk.text,
                     chunk.char_offset,
                 ).unwrap_or(0);
-                
+
                 if debug {
                     report_progress(ProgressEvent::Debug {
                         operation: "chunk_processing".to_string(),
-                        details: format!("Chunk {} produced {} extractions ({} aligned)", 
+                        details: format!("Chunk {} produced {} extractions ({} aligned)",
                             chunk.id, extractions.len(), aligned_count),
                     });
                 }
@@ -505,7 +506,7 @@ impl Annotator {
                 }
                 return Ok(extractions);
             }
-            
+
             if let Some(results_array) = obj.get("results").and_then(|v| v.as_array()) {
                 for (index, item) in results_array.iter().enumerate() {
                     extractions.extend(self.parse_single_item(item, Some(index))?);
@@ -542,14 +543,14 @@ impl Annotator {
                     // For complex values, serialize as JSON
                     serde_json::to_string(value).unwrap_or_else(|_| "null".to_string())
                 };
-                
+
                 // Create extraction class name - include index if we're processing an array
                 let extraction_class = if let Some(idx) = index {
                     format!("{}_{}", key, idx)
                 } else {
                     key.clone()
                 };
-                
+
                 extractions.push(Extraction::new(extraction_class, extraction_text));
             }
         }

@@ -169,7 +169,7 @@ impl TokenChunk {
 
         if let Some(ref document) = self.document {
             let tokenized = tokenizer.tokenize(&document.text)?;
-            
+
             // If we have a custom character end position, use it
             if let Some(custom_end) = self.custom_char_end {
                 if !tokenized.tokens.is_empty() && self.token_interval.start_index < tokenized.tokens.len() {
@@ -179,7 +179,7 @@ impl TokenChunk {
                     return Ok(document.text[start_char..end_char].to_string());
                 }
             }
-            
+
             // Otherwise use standard token-based reconstruction
             let text = tokenizer.tokens_text(&tokenized, &self.token_interval)?;
             Ok(text)
@@ -210,8 +210,8 @@ impl TokenChunk {
         if let Some(ref document) = self.document {
             let tokenized = tokenizer.tokenize(&document.text)?;
             let tokens = &tokenized.tokens;
-            
-            if self.token_interval.start_index >= tokens.len() 
+
+            if self.token_interval.start_index >= tokens.len()
                 || self.token_interval.end_index > tokens.len() {
                 return Err(crate::exceptions::LangExtractError::invalid_input(
                     "Token interval is out of bounds for the document"
@@ -220,7 +220,7 @@ impl TokenChunk {
 
             let start_token = &tokens[self.token_interval.start_index];
             let end_token = &tokens[self.token_interval.end_index - 1];
-            
+
             // Convert from tokenizer CharInterval to data CharInterval
             Ok(CharInterval {
                 start_pos: Some(start_token.char_interval.start_pos),
@@ -240,11 +240,11 @@ fn sanitize_text(text: &str) -> LangExtractResult<String> {
         .map_err(|e| crate::exceptions::LangExtractError::configuration(format!("Regex error: {}", e)))?
         .replace_all(text.trim(), " ")
         .to_string();
-    
+
     if sanitized.is_empty() {
         return Err(crate::exceptions::LangExtractError::invalid_input("Sanitized text is empty"));
     }
-    
+
     Ok(sanitized)
 }
 
@@ -301,7 +301,7 @@ impl TextChunker {
     pub fn with_config(config: ChunkingConfig) -> Self {
         // Regex for sentence boundaries (basic implementation)
         let sentence_regex = Regex::new(r"[.!?]+\s+").unwrap();
-        
+
         // Regex for paragraph boundaries
         let paragraph_regex = Regex::new(r"\n\s*\n").unwrap();
 
@@ -346,7 +346,7 @@ impl TextChunker {
             );
 
             let chunk_text = text[current_pos..chunk_end].to_string();
-            
+
             let overlap_start = if chunk_id > 0 { self.config.overlap_size } else { 0 };
             let overlap_end = if chunk_end < text.len() { self.config.overlap_size } else { 0 };
 
@@ -376,7 +376,7 @@ impl TextChunker {
         self.chunk_by_boundaries(text, &sentence_boundaries, document_id)
     }
 
-    /// Chunk by paragraph boundaries  
+    /// Chunk by paragraph boundaries
     fn chunk_by_paragraphs(&self, text: &str, document_id: Option<String>) -> LangExtractResult<Vec<TextChunk>> {
         let paragraph_boundaries = self.find_paragraph_boundaries(text);
         self.chunk_by_boundaries(text, &paragraph_boundaries, document_id)
@@ -392,30 +392,30 @@ impl TextChunker {
     /// Find sentence boundaries in text
     fn find_sentence_boundaries(&self, text: &str) -> Vec<usize> {
         let mut boundaries = vec![0]; // Start of text
-        
+
         for mat in self.sentence_regex.find_iter(text) {
             boundaries.push(mat.end());
         }
-        
+
         if boundaries.last() != Some(&text.len()) {
             boundaries.push(text.len()); // End of text
         }
-        
+
         boundaries
     }
 
     /// Find paragraph boundaries in text
     fn find_paragraph_boundaries(&self, text: &str) -> Vec<usize> {
         let mut boundaries = vec![0]; // Start of text
-        
+
         for mat in self.paragraph_regex.find_iter(text) {
             boundaries.push(mat.end());
         }
-        
+
         if boundaries.last() != Some(&text.len()) {
             boundaries.push(text.len()); // End of text
         }
-        
+
         boundaries
     }
 
@@ -499,12 +499,12 @@ impl TextChunker {
         document_id: Option<String>,
     ) -> LangExtractResult<Vec<TextChunk>> {
         let mut chunks = Vec::new();
-        let mut chunk_id = 0; 
+        let mut chunk_id = 0;
         let mut current_start = 0;
 
         for &boundary in boundaries.iter().skip(1) {
             let potential_chunk_size = boundary - current_start;
-            
+
             // If the potential chunk is within size limits, use it
             if potential_chunk_size <= self.config.max_chunk_size {
                 if potential_chunk_size >= self.config.min_chunk_size || chunks.is_empty() {
@@ -519,14 +519,14 @@ impl TextChunker {
                 // For now, fall back to fixed-size chunking for this section
                 let section = &text[current_start..boundary];
                 let mut section_chunks = self.chunk_fixed_size(section, document_id.clone())?;
-                
+
                 // Adjust offsets
                 for chunk in &mut section_chunks {
                     chunk.id = chunk_id;
                     chunk.char_offset += current_start;
                     chunk_id += 1;
                 }
-                
+
                 chunks.extend(section_chunks);
                 current_start = boundary;
             }
@@ -572,7 +572,7 @@ impl<'a> ChunkIterator<'a> {
         document: Option<&'a Document>,
     ) -> LangExtractResult<Self> {
         let sentence_iter = SentenceIterator::new(text, tokenizer, 0)?;
-        
+
         Ok(Self {
             tokenized_text: text,
             tokenizer,
@@ -595,7 +595,7 @@ impl<'a> ChunkIterator<'a> {
 
     /// Get character interval for a token interval (using data::CharInterval)
     fn get_char_interval_for_tokens(&self, token_interval: &TokenInterval) -> LangExtractResult<CharInterval> {
-        if token_interval.start_index >= self.tokenized_text.tokens.len() 
+        if token_interval.start_index >= self.tokenized_text.tokens.len()
             || token_interval.end_index > self.tokenized_text.tokens.len() {
             return Err(crate::exceptions::LangExtractError::invalid_input(
                 "Token interval is out of bounds"
@@ -604,7 +604,7 @@ impl<'a> ChunkIterator<'a> {
 
         let start_token = &self.tokenized_text.tokens[token_interval.start_index];
         let end_token = &self.tokenized_text.tokens[token_interval.end_index - 1];
-        
+
         Ok(CharInterval {
             start_pos: Some(start_token.char_interval.start_pos),
             end_pos: Some(end_token.char_interval.end_pos),
@@ -621,7 +621,7 @@ impl<'a> ChunkIterator<'a> {
                 return TokenChunk::with_char_end(token_interval, self.document.cloned(), custom_end);
             }
         }
-        
+
         // For the last chunk or when we can't determine the next token, use normal boundaries
         TokenChunk::new(token_interval, self.document.cloned())
     }
@@ -662,7 +662,7 @@ impl<'a> Iterator for ChunkIterator<'a> {
                     }
                     Err(e) => return Some(Err(e)),
                 }
-                
+
                 return Some(Ok(TokenChunk::new(curr_chunk, self.document.cloned())));
             }
             Ok(false) => {}, // Continue with normal processing
@@ -822,10 +822,10 @@ impl ResultAggregator {
     /// Remove duplicate extractions based on similarity
     fn deduplicate_extractions(&self, extractions: Vec<Extraction>) -> LangExtractResult<Vec<Extraction>> {
         let mut unique_extractions = Vec::new();
-        
+
         for extraction in extractions {
             let mut is_duplicate = false;
-            
+
             // Check against existing extractions
             for existing in &unique_extractions {
                 if self.are_similar_extractions(&extraction, existing) {
@@ -833,7 +833,7 @@ impl ResultAggregator {
                     break;
                 }
             }
-            
+
             if !is_duplicate {
                 unique_extractions.push(extraction);
             }
@@ -1018,7 +1018,7 @@ mod tests {
     fn test_chunk_char_interval() {
         let chunk = TextChunk::new(0, "test".to_string(), 10, None);
         let interval = chunk.char_interval();
-        
+
         assert_eq!(interval.start_pos, Some(10));
         assert_eq!(interval.end_pos, Some(14));
     }
@@ -1047,7 +1047,7 @@ mod tests {
         // Given: Text with clear sentence boundaries and max_char_buffer=50
         // When: Using token-based chunking
         // Then: Should combine multiple sentences into one chunk when they fit
-        
+
         let tokenizer = create_tokenizer();
         let text = "This is a sentence. This is a longer sentence.";
         let tokenized = tokenizer.tokenize(text).expect("Tokenization failed");
@@ -1074,7 +1074,7 @@ mod tests {
         // Given: Long sentence that exceeds buffer and max_char_buffer=20
         // When: Using token-based chunking
         // Then: Should break the sentence at appropriate token boundaries
-        
+
         let tokenizer = create_tokenizer();
         let text = "This is a very long sentence that definitely exceeds the buffer.";
         let tokenized = tokenizer.tokenize(text).expect("Tokenization failed");
@@ -1103,7 +1103,7 @@ mod tests {
         // Given: Text with very long word and max_char_buffer=10
         // When: Using token-based chunking
         // Then: The long word should get its own chunk even though it exceeds buffer
-        
+
         let tokenizer = create_tokenizer();
         let text = "Short antidisestablishmentarianism word.";
         let tokenized = tokenizer.tokenize(text).expect("Tokenization failed");
@@ -1134,7 +1134,7 @@ mod tests {
         // Given: Text with newlines and max_char_buffer that would overflow including second part
         // When: Using token-based chunking
         // Then: Should break at newline rather than arbitrary character positions
-        
+
         let tokenizer = create_tokenizer();
         let text = "First part of sentence\nSecond part of sentence continues here";
         let tokenized = tokenizer.tokenize(text).expect("Tokenization failed");
@@ -1152,9 +1152,9 @@ mod tests {
         // First chunk should end at or before the newline
         let first_chunk_text = chunks[0].chunk_text(&tokenizer)
             .expect("Failed to get first chunk text");
-        
+
         // Should prefer breaking at natural boundaries
-        assert!(!first_chunk_text.contains("continues"), 
+        assert!(!first_chunk_text.contains("continues"),
             "First chunk should not contain text after newline: '{}'", first_chunk_text);
     }
 
@@ -1164,7 +1164,7 @@ mod tests {
         // Given: Empty tokenized text
         // When: Creating chunk iterator and calling next()
         // Then: Should return None immediately
-        
+
         let tokenizer = create_tokenizer();
         let text = "";
         let tokenized = tokenizer.tokenize(text).expect("Tokenization failed");
@@ -1183,7 +1183,7 @@ mod tests {
         // Given: Short sentence within buffer limits
         // When: Using token-based chunking
         // Then: Should produce single chunk with the entire sentence
-        
+
         let tokenizer = create_tokenizer();
         let text = "Short sentence.";
         let tokenized = tokenizer.tokenize(text).expect("Tokenization failed");
@@ -1211,7 +1211,7 @@ mod tests {
         // Given: A TokenChunk created from text
         // When: Accessing its properties
         // Then: Should provide correct token interval and text reconstruction
-        
+
         let tokenizer = create_tokenizer();
         let text = "Test sentence.";
         let tokenized = tokenizer.tokenize(text).expect("Tokenization failed");
@@ -1244,7 +1244,7 @@ mod tests {
         // Given: Multiple sentences of varying lengths
         // When: Iterating through chunks progressively
         // Then: Should produce appropriate chunks that respect sentence boundaries
-        
+
         let tokenizer = create_tokenizer();
         let text = "Short. Medium length sentence here. Very long sentence that might need to be broken up depending on buffer size.";
         let tokenized = tokenizer.tokenize(text).expect("Tokenization failed");
@@ -1280,7 +1280,7 @@ mod tests {
         // For now, let's check that chunks don't have obvious gaps
         // The real fix will be to ensure proper adjacency
         assert!(chunks.len() >= 2, "Should produce multiple chunks for long text");
-        
+
         // Temporarily disable the exact match test until we fix the spacing issue
         // assert_eq!(reconstructed, text, "Reconstructed text should match original");
     }
@@ -1291,7 +1291,7 @@ mod tests {
         // Given: TokenChunk created without a document
         // When: Trying to access text-dependent properties
         // Then: Should return appropriate errors
-        
+
         let tokenizer = create_tokenizer();
         let token_interval = crate::tokenizer::TokenInterval::new(0, 1)
             .expect("Failed to create token interval");

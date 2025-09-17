@@ -3,8 +3,14 @@
 //! This module provides a unified template system that eliminates duplication
 //! across different prompt templates and formats.
 
-use crate::{data::{ExampleData, FormatType}, exceptions::{LangExtractError, LangExtractResult}};
+use serde_json::Value;
+
+use crate::{
+    data::{ExampleData, FormatType},
+    exceptions::{LangExtractError, LangExtractResult},
+};
 use std::collections::HashMap;
+use crate::schema::ATTRIBUTES_SUFFIX;
 
 /// Template error types
 #[derive(Debug, thiserror::Error)]
@@ -59,7 +65,11 @@ impl TemplateEngine {
     }
 
     /// Render a template with variables
-    pub fn render(&self, template: &str, variables: &HashMap<String, String>) -> LangExtractResult<String> {
+    pub fn render(
+        &self,
+        template: &str,
+        variables: &HashMap<String, String>,
+    ) -> LangExtractResult<String> {
         let mut result = template.to_string();
         let mut pos = 0;
 
@@ -67,11 +77,11 @@ impl TemplateEngine {
             if let Some(start) = result[pos..].find(&self.var_start) {
                 let abs_start = pos + start;
                 let search_from = abs_start + self.var_start.len();
-                
+
                 if let Some(end) = result[search_from..].find(&self.var_end) {
                     let abs_end = search_from + end;
                     let var_name = &result[abs_start + self.var_start.len()..abs_end];
-                    
+
                     if let Some(value) = variables.get(var_name) {
                         result.replace_range(abs_start..abs_end + self.var_end.len(), value);
                         pos = abs_start + value.len();
@@ -81,12 +91,14 @@ impl TemplateEngine {
                     } else {
                         return Err(TemplateError::MissingVariable {
                             variable: var_name.to_string(),
-                        }.into());
+                        }
+                        .into());
                     }
                 } else {
                     return Err(TemplateError::InvalidSyntax {
                         message: format!("Unclosed variable at position {}", abs_start),
-                    }.into());
+                    }
+                    .into());
                 }
             } else {
                 break;
@@ -105,11 +117,11 @@ impl TemplateEngine {
             if let Some(start) = template[pos..].find(&self.var_start) {
                 let abs_start = pos + start;
                 let search_from = abs_start + self.var_start.len();
-                
+
                 if let Some(end) = template[search_from..].find(&self.var_end) {
                     let abs_end = search_from + end;
                     let var_name = &template[abs_start + self.var_start.len()..abs_end];
-                    
+
                     if !var_name.is_empty() && !variables.contains(&var_name.to_string()) {
                         variables.push(var_name.to_string());
                     }
@@ -126,7 +138,11 @@ impl TemplateEngine {
     }
 
     /// Validate that all required variables are present
-    pub fn validate(&self, template: &str, variables: &HashMap<String, String>) -> LangExtractResult<()> {
+    pub fn validate(
+        &self,
+        template: &str,
+        variables: &HashMap<String, String>,
+    ) -> LangExtractResult<()> {
         if self.allow_missing {
             return Ok(());
         }
@@ -170,7 +186,7 @@ impl TemplateFragments {
         "\n\nExamples:\n"
     }
 
-    /// Input section header  
+    /// Input section header
     pub fn input_header() -> &'static str {
         "\n\nNow extract information from this text:\n\nInput: "
     }
@@ -231,42 +247,76 @@ impl ExampleFormatter {
 
     /// Format a single example in the specified format
     fn format_single_example(&self, example: &ExampleData) -> LangExtractResult<String> {
+        // let mut obj_map: BTreeMap<String, Value> = std::collections::BTreeMap::new();
+
+        let mut items: Vec<Value> = Vec::new();
+
+        for extraction in &example.extractions {
+            let mut map = serde_json::Map::new();
+            map.insert(
+                extraction.extraction_class.clone(),
+                Value::String(extraction.extraction_text.clone()),
+            );
+
+            // 修复这里：将 Option<HashMap<String, Value>> 转换为 Value
+            let attributes_value = extraction
+                .attributes
+                .as_ref()
+                .map(|attrs| {
+                    Value::Object(attrs.iter().map(|(k, v)| (k.clone(), v.clone())).collect())
+                })
+                .unwrap_or(Value::Null);
+
+            map.insert(
+                format!("{}{}", extraction.extraction_class.clone(), ATTRIBUTES_SUFFIX),
+                attributes_value,
+            );
+
+            items.push(Value::Object(map));
+        }
+
+        let payload = Value::Array(items);
+
         match self.format_type {
-            FormatType::Json => self.format_as_json(example),
-            FormatType::Yaml => self.format_as_yaml(example),
+            FormatType::Json => self.format_as_json(payload),
+            FormatType::Yaml => self.format_as_yaml(payload),
         }
     }
 
-    fn format_as_json(&self, example: &ExampleData) -> LangExtractResult<String> {
-        let mut json_obj = serde_json::Map::new();
-        
-        for extraction in &example.extractions {
-            json_obj.insert(
-                extraction.extraction_class.clone(),
-                serde_json::Value::String(extraction.extraction_text.clone()),
-            );
-        }
+    fn format_as_json(&self, obj_map: Value) -> LangExtractResult<String> {
+        // let mut json_obj = serde_json::Map::new();
 
-        serde_json::to_string_pretty(&json_obj)
-            .map_err(|e| TemplateError::SubstitutionError {
+        // for extraction in &example.extractions {
+        //     json_obj.insert(
+        //         extraction.extraction_class.clone(),
+        //         serde_json::Value::String(extraction.extraction_text.clone()),
+        //     );
+        // }
+
+        serde_json::to_string_pretty(&obj_map).map_err(|e| {
+            TemplateError::SubstitutionError {
                 message: format!("Failed to format JSON: {}", e),
-            }.into())
+            }
+            .into()
+        })
     }
 
-    fn format_as_yaml(&self, example: &ExampleData) -> LangExtractResult<String> {
-        let mut yaml_map = std::collections::BTreeMap::new();
-        
-        for extraction in &example.extractions {
-            yaml_map.insert(
-                extraction.extraction_class.clone(),
-                extraction.extraction_text.clone(),
-            );
-        }
+    fn format_as_yaml(&self, obj_map: Value) -> LangExtractResult<String> {
+        // let mut yaml_map = std::collections::BTreeMap::new();
 
-        serde_yaml::to_string(&yaml_map)
-            .map_err(|e| TemplateError::SubstitutionError {
+        // for extraction in &example.extractions {
+        //     yaml_map.insert(
+        //         extraction.extraction_class.clone(),
+        //         extraction.extraction_text.clone(),
+        //     );
+        // }
+
+        serde_yaml::to_string(&obj_map).map_err(|e| {
+            TemplateError::SubstitutionError {
                 message: format!("Failed to format YAML: {}", e),
-            }.into())
+            }
+            .into()
+        })
     }
 }
 
@@ -295,7 +345,8 @@ impl TemplateBuilder {
             reasoning: String::new(),
             examples_section: "{examples}".to_string(),
             context_section: "{additional_context}".to_string(),
-            input_section: format!("{}{}{}", 
+            input_section: format!(
+                "{}{}{}",
                 TemplateFragments::input_header(),
                 "{input_text}",
                 TemplateFragments::output_header(format_type)
@@ -336,7 +387,10 @@ impl TemplateBuilder {
         )
     }
 
-    pub fn build_with_variables(self, variables: HashMap<String, String>) -> LangExtractResult<String> {
+    pub fn build_with_variables(
+        self,
+        variables: HashMap<String, String>,
+    ) -> LangExtractResult<String> {
         let template = self.build();
         self.engine.render(&template, &variables)
     }
@@ -351,7 +405,7 @@ mod tests {
     fn test_template_engine_basic() {
         let engine = TemplateEngine::new();
         let template = "Hello {name}, welcome to {place}!";
-        
+
         let mut vars = HashMap::new();
         vars.insert("name".to_string(), "John".to_string());
         vars.insert("place".to_string(), "LangExtract".to_string());
@@ -364,7 +418,7 @@ mod tests {
     fn test_template_engine_missing_var() {
         let engine = TemplateEngine::new();
         let template = "Hello {name}, welcome to {place}!";
-        
+
         let mut vars = HashMap::new();
         vars.insert("name".to_string(), "John".to_string());
         // Missing "place" variable
@@ -377,7 +431,7 @@ mod tests {
     fn test_template_engine_lenient() {
         let engine = TemplateEngine::lenient();
         let template = "Hello {name}, welcome to {place}!";
-        
+
         let mut vars = HashMap::new();
         vars.insert("name".to_string(), "John".to_string());
         // Missing "place" variable
@@ -390,7 +444,7 @@ mod tests {
     fn test_variable_extraction() {
         let engine = TemplateEngine::new();
         let template = "Hello {name}, welcome to {place}! Your ID is {id}.";
-        
+
         let vars = engine.extract_variables(template);
         assert_eq!(vars, vec!["name", "place", "id"]);
     }
@@ -398,7 +452,7 @@ mod tests {
     #[test]
     fn test_example_formatter_json() {
         let formatter = ExampleFormatter::new(FormatType::Json);
-        
+
         let example = ExampleData::new(
             "John Doe is 30 years old".to_string(),
             vec![
@@ -432,7 +486,10 @@ mod tests {
     fn test_template_builder_with_variables() {
         let mut vars = HashMap::new();
         vars.insert("task_description".to_string(), "Extract names".to_string());
-        vars.insert("examples".to_string(), "Example: John -> person: John".to_string());
+        vars.insert(
+            "examples".to_string(),
+            "Example: John -> person: John".to_string(),
+        );
         vars.insert("input_text".to_string(), "Alice Smith".to_string());
         vars.insert("additional_context".to_string(), "".to_string());
 

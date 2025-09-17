@@ -6,7 +6,9 @@ use crate::{
     exceptions::{LangExtractError, LangExtractResult},
     inference::{BaseLanguageModel, ScoredOutput},
     logging::{report_progress, ProgressEvent},
+    schema,
     schema::BaseSchema,
+    schema::ATTRIBUTES_SUFFIX,
 };
 use async_trait::async_trait;
 use std::collections::HashMap;
@@ -44,9 +46,12 @@ impl UniversalProvider {
                 Err(e) => {
                     if attempt == max_retries {
                         // Last attempt failed, return the error
-                        return Err(LangExtractError::inference_simple(
-                            format!("{} failed after {} attempts. Last error: {}", operation_name, max_retries + 1, e)
-                        ));
+                        return Err(LangExtractError::inference_simple(format!(
+                            "{} failed after {} attempts. Last error: {}",
+                            operation_name,
+                            max_retries + 1,
+                            e
+                        )));
                     }
 
                     // Calculate delay with exponential backoff (30s, 60s, 90s)
@@ -115,9 +120,10 @@ impl UniversalProvider {
             ChatCompletionRequestSystemMessageContent, CreateChatCompletionRequest,
         };
 
-        let client = self.openai_client.as_ref().ok_or_else(|| {
-            LangExtractError::configuration("OpenAI client not initialized")
-        })?;
+        let client = self
+            .openai_client
+            .as_ref()
+            .ok_or_else(|| LangExtractError::configuration("OpenAI client not initialized"))?;
 
         let mut results = Vec::new();
 
@@ -131,13 +137,19 @@ impl UniversalProvider {
             // Create messages for the chat completion
             let messages = vec![
                 ChatCompletionRequestMessage::System(ChatCompletionRequestSystemMessage {
-                    content: ChatCompletionRequestSystemMessageContent::Text(system_message.to_string()),
+                    content: ChatCompletionRequestSystemMessageContent::Text(
+                        system_message.to_string(),
+                    ),
                     name: None,
                 }),
-                ChatCompletionRequestMessage::User(async_openai::types::ChatCompletionRequestUserMessage {
-                    content: async_openai::types::ChatCompletionRequestUserMessageContent::Text(prompt.clone()),
-                    name: None,
-                }),
+                ChatCompletionRequestMessage::User(
+                    async_openai::types::ChatCompletionRequestUserMessage {
+                        content: async_openai::types::ChatCompletionRequestUserMessageContent::Text(
+                            prompt.clone(),
+                        ),
+                        name: None,
+                    },
+                ),
             ];
 
             // Build the request
@@ -155,7 +167,7 @@ impl UniversalProvider {
                     request.temperature = Some(temp_f64 as f32);
                 }
             }
-            
+
             if let Some(max_tokens) = kwargs.get("max_tokens") {
                 if let Some(max_tokens_u64) = max_tokens.as_u64() {
                     request.max_tokens = Some(max_tokens_u64 as u32);
@@ -168,29 +180,29 @@ impl UniversalProvider {
                 model: self.config.model.clone(),
                 input_length: prompt.len(),
             });
-            
-            let response = self.retry_with_backoff(
-                || async {
-                    let result = client.chat().create(request.clone()).await.map_err(|e| {
-                        report_progress(ProgressEvent::Error {
-                            operation: "OpenAI API request".to_string(),
-                            error: format!("OpenAI API error: {}", e),
+
+            let response = self
+                .retry_with_backoff(
+                    || async {
+                        let result = client.chat().create(request.clone()).await.map_err(|e| {
+                            report_progress(ProgressEvent::Error {
+                                operation: "OpenAI API request".to_string(),
+                                error: format!("OpenAI API error: {}", e),
+                            });
+                            LangExtractError::inference_simple(format!("OpenAI API error: {}", e))
                         });
-                        LangExtractError::inference_simple(format!("OpenAI API error: {}", e))
-                    });
-                    result
-                },
-                &format!("OpenAI API call for prompt batch {}", prompt.len())
-            ).await?;
+                        result
+                    },
+                    &format!("OpenAI API call for prompt batch {}", prompt.len()),
+                )
+                .await?;
 
             // Extract the response content
             let content = response
                 .choices
                 .get(0)
                 .and_then(|choice| choice.message.content.as_ref())
-                .ok_or_else(|| {
-                    LangExtractError::parsing("No content in OpenAI response")
-                })?;
+                .ok_or_else(|| LangExtractError::parsing("No content in OpenAI response"))?;
 
             results.push(vec![ScoredOutput::from_text(content.clone())]);
         }
@@ -247,48 +259,54 @@ impl UniversalProvider {
                 model: self.config.model.clone(),
                 input_length: prompt.len(),
             });
-            
-            let response_body = self.retry_with_backoff(
-                || async {
-                    let mut request = self.client.post(&url).json(&request_body);
 
-                    // Add headers
-                    for (key, value) in &self.config.headers {
-                        request = request.header(key, value);
-                    }
+            let response_body = self
+                .retry_with_backoff(
+                    || async {
+                        let mut request = self.client.post(&url).json(&request_body);
 
-                    let response = request.send().await.map_err(|e| {
-                        report_progress(ProgressEvent::Error {
-                            operation: "Ollama HTTP request".to_string(),
-                            error: format!("HTTP request failed: {}", e),
-                        });
-                        LangExtractError::NetworkError(e)
-                    })?;
+                        // Add headers
+                        for (key, value) in &self.config.headers {
+                            request = request.header(key, value);
+                        }
 
-                    if !response.status().is_success() {
-                        let status = response.status();
-                        report_progress(ProgressEvent::Error {
-                            operation: "Ollama HTTP status".to_string(),
-                            error: format!("HTTP error status: {}", status),
-                        });
-                        return Err(LangExtractError::inference_simple(format!(
-                            "Ollama API error: HTTP {}",
-                            status
-                        )));
-                    }
+                        let response = request.send().await.map_err(|e| {
+                            report_progress(ProgressEvent::Error {
+                                operation: "Ollama HTTP request".to_string(),
+                                error: format!("HTTP request failed: {}", e),
+                            });
+                            LangExtractError::NetworkError(e)
+                        })?;
 
-                    let response_body: serde_json::Value = response.json().await.map_err(|e| {
-                        report_progress(ProgressEvent::Error {
-                            operation: "Ollama JSON parsing".to_string(),
-                            error: format!("JSON parsing failed: {}", e),
-                        });
-                        LangExtractError::parsing(format!("Failed to parse Ollama response: {}", e))
-                    })?;
+                        if !response.status().is_success() {
+                            let status = response.status();
+                            report_progress(ProgressEvent::Error {
+                                operation: "Ollama HTTP status".to_string(),
+                                error: format!("HTTP error status: {}", status),
+                            });
+                            return Err(LangExtractError::inference_simple(format!(
+                                "Ollama API error: HTTP {}",
+                                status
+                            )));
+                        }
 
-                    Ok(response_body)
-                },
-                &format!("Ollama API call for prompt batch {}", prompt.len())
-            ).await?;
+                        let response_body: serde_json::Value =
+                            response.json().await.map_err(|e| {
+                                report_progress(ProgressEvent::Error {
+                                    operation: "Ollama JSON parsing".to_string(),
+                                    error: format!("JSON parsing failed: {}", e),
+                                });
+                                LangExtractError::parsing(format!(
+                                    "Failed to parse Ollama response: {}",
+                                    e
+                                ))
+                            })?;
+
+                        Ok(response_body)
+                    },
+                    &format!("Ollama API call for prompt batch {}", prompt.len()),
+                )
+                .await?;
 
             let content = response_body
                 .get("response")
@@ -308,7 +326,7 @@ impl UniversalProvider {
 impl BaseLanguageModel for UniversalProvider {
     fn get_schema_class(&self) -> Option<Box<dyn BaseSchema>> {
         // Return a format mode schema for now
-        crate::schema::FormatModeSchema::from_examples(&[], "_attributes").ok()
+        crate::schema::FormatModeSchema::from_examples(&[], ATTRIBUTES_SUFFIX).ok()
     }
 
     fn apply_schema(&mut self, schema: Option<Box<dyn BaseSchema>>) {
@@ -340,17 +358,13 @@ impl BaseLanguageModel for UniversalProvider {
             #[cfg(feature = "openai")]
             ProviderType::OpenAI => self.infer_openai(batch_prompts, kwargs).await,
             ProviderType::Ollama => self.infer_ollama(batch_prompts, kwargs).await,
-            ProviderType::Custom => {
-                Err(LangExtractError::configuration(
-                    "Custom provider inference not yet implemented"
-                ))
-            }
+            ProviderType::Custom => Err(LangExtractError::configuration(
+                "Custom provider inference not yet implemented",
+            )),
             #[cfg(not(feature = "openai"))]
-            ProviderType::OpenAI => {
-                Err(LangExtractError::configuration(
-                    "OpenAI feature not enabled. Enable with --features openai"
-                ))
-            }
+            ProviderType::OpenAI => Err(LangExtractError::configuration(
+                "OpenAI feature not enabled. Enable with --features openai",
+            )),
         }
     }
 
@@ -386,20 +400,25 @@ mod tests {
         let attempt_count = Arc::new(AtomicUsize::new(0));
         let attempt_count_clone = attempt_count.clone();
 
-        let result = provider.retry_with_backoff(
-            move || {
-                let attempt_count = attempt_count_clone.clone();
-                async move {
-                    let current = attempt_count.fetch_add(1, Ordering::SeqCst);
-                    if current < 2 {
-                        Err::<String, _>(LangExtractError::inference_simple(format!("Attempt {} failed", current + 1)))
-                    } else {
-                        Ok("Success!".to_string())
+        let result = provider
+            .retry_with_backoff(
+                move || {
+                    let attempt_count = attempt_count_clone.clone();
+                    async move {
+                        let current = attempt_count.fetch_add(1, Ordering::SeqCst);
+                        if current < 2 {
+                            Err::<String, _>(LangExtractError::inference_simple(format!(
+                                "Attempt {} failed",
+                                current + 1
+                            )))
+                        } else {
+                            Ok("Success!".to_string())
+                        }
                     }
-                }
-            },
-            "Test operation"
-        ).await;
+                },
+                "Test operation",
+            )
+            .await;
 
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), "Success!");
@@ -414,16 +433,18 @@ mod tests {
         let attempt_count = Arc::new(AtomicUsize::new(0));
         let attempt_count_clone = attempt_count.clone();
 
-        let result = provider.retry_with_backoff(
-            move || {
-                let attempt_count = attempt_count_clone.clone();
-                async move {
-                    attempt_count.fetch_add(1, Ordering::SeqCst);
-                    Ok("Immediate success!".to_string())
-                }
-            },
-            "Test operation"
-        ).await;
+        let result = provider
+            .retry_with_backoff(
+                move || {
+                    let attempt_count = attempt_count_clone.clone();
+                    async move {
+                        attempt_count.fetch_add(1, Ordering::SeqCst);
+                        Ok("Immediate success!".to_string())
+                    }
+                },
+                "Test operation",
+            )
+            .await;
 
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), "Immediate success!");

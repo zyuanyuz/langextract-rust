@@ -295,7 +295,7 @@ impl Tokenizer {
                 let prev_token = &tokens[current_idx - 1];
                 let prev_token_text = &text[prev_token.char_interval.start_pos..prev_token.char_interval.end_pos];
                 let combined = format!("{}{}", prev_token_text, current_token_text);
-                
+
                 if self.known_abbreviations.contains(&combined) {
                     return false;
                 }
@@ -322,7 +322,7 @@ impl Tokenizer {
         // Check for newline in the gap between tokens
         let gap_start = current_token.char_interval.end_pos;
         let gap_end = next_token.char_interval.start_pos;
-        
+
         if gap_start >= gap_end {
             return false;
         }
@@ -394,7 +394,7 @@ impl<'a> SentenceIterator<'a> {
         current_token_pos: usize,
     ) -> LangExtractResult<Self> {
         let token_len = tokenized_text.tokens.len();
-        
+
         if current_token_pos > token_len {
             return Err(LangExtractError::invalid_input(format!(
                 "Current token position {} is past the length of the document {}",

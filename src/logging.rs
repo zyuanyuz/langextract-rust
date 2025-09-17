@@ -134,7 +134,7 @@ impl ConsoleProgressHandler {
         if self.use_styling {
             format!("{} {}", emoji, message)
         } else {
-            format!("[{}] {}", 
+            format!("[{}] {}",
                 match emoji {
                     "🤖" => "MODEL",
                     "📄" => "CHUNK",
@@ -172,14 +172,14 @@ impl ProgressHandler for ConsoleProgressHandler {
             }
             ProgressEvent::ChunkingStarted { total_chars, chunk_count, strategy } => {
                 if self.show_progress {
-                    let msg = format!("Processing document with {} {} chunks ({} chars total)", 
+                    let msg = format!("Processing document with {} {} chunks ({} chars total)",
                         chunk_count, strategy, total_chars);
                     println!("{}", self.format_message("📄", &msg));
                 }
             }
             ProgressEvent::BatchProgress { batch_number, total_batches: _, chunks_processed, total_chunks } => {
                 if self.show_progress {
-                    let msg = format!("Processing batch {} ({}/{} chunks processed)", 
+                    let msg = format!("Processing batch {} ({}/{} chunks processed)",
                         batch_number, chunks_processed, total_chunks);
                     println!("{}", self.format_message("🔄", &msg));
                 }
@@ -214,9 +214,9 @@ impl ProgressHandler for ConsoleProgressHandler {
             }
             ProgressEvent::RetryAttempt { operation, attempt, max_attempts, delay_seconds } => {
                 if self.show_progress {
-                    println!("{}", self.format_message("❌", 
+                    println!("{}", self.format_message("❌",
                         &format!("{} failed (attempt {}/{})", operation, attempt, max_attempts)));
-                    println!("{}", self.format_message("⏳", 
+                    println!("{}", self.format_message("⏳",
                         &format!("Retrying in {} seconds...", delay_seconds)));
                 }
             }
@@ -234,7 +234,7 @@ impl ProgressHandler for ConsoleProgressHandler {
             }
             ProgressEvent::ValidationCompleted { extractions_found, aligned_count, errors, warnings } => {
                 if self.show_debug {
-                    let msg = format!("Validation result: {} extractions ({} aligned), {} errors, {} warnings", 
+                    let msg = format!("Validation result: {} extractions ({} aligned), {} errors, {} warnings",
                         extractions_found, aligned_count, errors, warnings);
                     println!("{}", self.format_message("🔧", &format!("DEBUG: {}", msg)));
                 }
@@ -278,7 +278,7 @@ impl ProgressHandler for LogProgressHandler {
                 }
             }
             ProgressEvent::ValidationCompleted { extractions_found, aligned_count, errors, warnings } => {
-                log::debug!("Validation: {} extractions ({} aligned), {} errors, {} warnings", 
+                log::debug!("Validation: {} extractions ({} aligned), {} errors, {} warnings",
                     extractions_found, aligned_count, errors, warnings);
             }
             ProgressEvent::AggregationStarted { chunk_count } => {
@@ -383,7 +383,7 @@ mod tests {
     #[test]
     fn test_progress_events() {
         let handler = ConsoleProgressHandler::quiet();
-        
+
         // Should not panic
         handler.handle_progress(ProgressEvent::ProcessingStarted {
             text_length: 1000,
